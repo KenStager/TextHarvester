@@ -19,7 +19,7 @@ pub struct ExportRequest {
 /// Export job data to JSONL format
 pub async fn export_job(
     req: web::Json<ExportRequest>,
-    state: web::Data<AppState>,
+    _state: web::Data<AppState>,
 ) -> impl Responder {
     let job_id = req.job_id;
     let chunk_size = req.chunk_size.unwrap_or(500);
@@ -52,7 +52,7 @@ pub async fn export_job(
     let exporter = JobExporter::new(db_config);
     
     // Create export options
-    let options = ExportOptions {
+    let _options = ExportOptions {
         chunk_size,
         overlap,
     };
@@ -84,7 +84,7 @@ pub async fn export_job(
 pub async fn stream_export(
     path: web::Path<i32>,
     query: web::Query<ExportOptions>,
-    state: web::Data<AppState>,
+    _state: web::Data<AppState>,
 ) -> impl Responder {
     let job_id = path.into_inner();
     let chunk_size = query.chunk_size;

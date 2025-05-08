@@ -621,7 +621,6 @@ def export_job(job_id):
             export_func = export_job_to_jsonl
             generate_records = generate_jsonl_records
             logger.info(f"Using Python-based export for job {job_id} (Rust import failed)")
-    import os
     from flask import send_file, Response, stream_with_context
     import json
     from datetime import datetime

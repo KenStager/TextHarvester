@@ -168,7 +168,7 @@ impl JobExporter {
     }
     
     /// Process a database row into a JSON record
-    fn process_row_to_json(&self, row: &Row, options: &ExportOptions) -> Result<String, Box<dyn Error>> {
+    fn process_row_to_json(&self, row: &Row, _options: &ExportOptions) -> Result<String, Box<dyn Error>> {
         let id: i32 = row.get(0);
         let url: String = row.get(1);
         let title: Option<String> = row.get(2);
@@ -349,6 +349,9 @@ impl JobExporter {
                 Ok(Some((bytes, state)))
             }
         )
-        .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)
+        .map_err(|e: Box<dyn std::error::Error + Send + Sync>| {
+            // Convert the error to actix_web::Error
+            actix_web::error::ErrorInternalServerError(e.to_string())
+        })
     }
 }

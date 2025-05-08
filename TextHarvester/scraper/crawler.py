@@ -13,6 +13,7 @@ from requests.exceptions import RequestException
 from models import ScrapingJob, ScrapedContent, ContentMetadata, ScrapingStatus
 from scraper.content_extractor import extract_content
 from scraper.utils import get_random_user_agent, get_domain_from_url
+from scraper.path_intelligence import LinkIntelligence, evaluate_page_quality
 
 # Thread local storage for app contexts
 thread_local = threading.local()
@@ -64,6 +65,11 @@ class WebCrawler:
         self.robot_parsers = {}
         self.throttle = {}  # Domain-based throttling
         
+        # Intelligence components
+        self.link_intelligence = None  # Will be initialized after loading job
+        self.page_quality_scores = {}  # Cache for page quality assessment
+        self.domain_quality_scores = {}  # Track domain quality for adaptive decisions
+        
         # Register this job as active at initialization
         with self.__class__._lock:
             self.__class__.active_jobs[self.job_id] = False
@@ -81,6 +87,29 @@ class WebCrawler:
                 raise ValueError(f"Job with ID {self.job_id} not found")
             
             self.configuration = self.job.configuration
+            
+            # Initialize link intelligence with base domains from configuration
+            base_domains = [urlparse(url).netloc for url in self.configuration.base_urls]
+            # Get unique domains
+            unique_domains = list(set(base_domains))
+            primary_domain = unique_domains[0] if unique_domains else None
+            
+            # Extract potential keywords from configuration description
+            keywords = []
+            if self.configuration.description:
+                # Extract potential keywords from description
+                import re
+                words = re.findall(r'\b\w{4,}\b', self.configuration.description.lower())
+                # Filter out common words
+                stopwords = ['this', 'that', 'with', 'from', 'have', 'will', 'what', 'when', 'where', 'configuration']
+                keywords = [w for w in words if w not in stopwords]
+            
+            # Initialize link intelligence
+            self.link_intelligence = LinkIntelligence(primary_domain, keywords)
+            logger.info(f"Initialized link intelligence for job {self.job_id} with domain {primary_domain}")
+            if keywords:
+                logger.info(f"Using content keywords: {', '.join(keywords)}")
+            
             return self.job
 
     def update_job_status(self, status, log=None):
@@ -360,26 +389,60 @@ class WebCrawler:
         return success, extracted_links
 
     def _extract_links(self, base_url, soup):
-        """Extract links from a webpage"""
-        links = []
+        """
+        Extract and prioritize links from a webpage using intelligent ranking
+        
+        Args:
+            base_url (str): The URL of the page containing the links
+            soup (BeautifulSoup): Parsed HTML content
+            
+        Returns:
+            list: Prioritized list of (url, score) tuples
+        """
+        scored_links = []
         domain = get_domain_from_url(base_url)
         
+        # Find all links
         for a_tag in soup.find_all('a', href=True):
             href = a_tag['href']
+            
+            # Skip empty links
+            if not href or href.startswith('#'):
+                continue
+                
+            # Convert relative URLs to absolute
             full_url = urljoin(base_url, href)
             
             # Skip non-HTTP URLs (like mailto:, tel:, etc.)
             if not full_url.startswith(('http://', 'https://')):
                 continue
                 
+            # Skip URLs we've already visited or failed to fetch
+            if full_url in self.visited_urls or full_url in self.failed_urls:
+                continue
+            
             # Check if we should follow external links
             link_domain = get_domain_from_url(full_url)
             if not self.configuration.follow_external_links and domain != link_domain:
                 continue
-                
-            links.append(full_url)
             
-        return links
+            # Score the link using our intelligence engine
+            if self.link_intelligence:
+                score = self.link_intelligence.score_link(full_url, a_tag, base_url)
+                scored_links.append((full_url, score))
+            else:
+                # Fallback if intelligence engine isn't initialized
+                scored_links.append((full_url, 0.5))  # Default neutral score
+        
+        # Sort links by score (highest first) and extract just the URLs
+        sorted_links = sorted(scored_links, key=lambda x: x[1], reverse=True)
+        
+        # Log high-value links for debugging
+        high_value_links = [(url, score) for url, score in sorted_links if score > 0.7]
+        if high_value_links:
+            logger.debug(f"High-value links from {base_url}: {high_value_links[:5]}")
+        
+        return sorted_links
 
     def update_statistics(self, processed=0, successful=0, failed=0):
         """Direct update to job statistics with proper app context handling using SQL"""
