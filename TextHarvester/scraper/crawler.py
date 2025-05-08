@@ -70,6 +70,10 @@ class WebCrawler:
         self.page_quality_scores = {}  # Cache for page quality assessment
         self.domain_quality_scores = {}  # Track domain quality for adaptive decisions
         
+        # Intelligent navigation enhancements
+        self.url_parents = {}  # Store parent URL for each discovered URL
+        self.content_html_cache = {}  # Limited cache of page HTML for context analysis
+        
         # Register this job as active at initialization
         with self.__class__._lock:
             self.__class__.active_jobs[self.job_id] = False
@@ -268,9 +272,43 @@ class WebCrawler:
                 title, extracted_text, raw_html = extract_content(url, response.content)
                 
                 # Get links for further crawling
-                if depth < self.configuration.max_depth:
-                    soup = BeautifulSoup(response.content, 'html.parser')
+                soup = BeautifulSoup(response.content, 'html.parser')
+                if depth < self.configuration.max_depth or self.should_extend_depth(url, depth):
                     extracted_links = self._extract_links(url, soup)
+                
+                # Store HTML in cache for context analysis (with thread safety)
+                with self.__class__._lock:
+                    # Limit cache size to prevent memory issues
+                    if len(self.content_html_cache) > 1000:  # Max 1000 pages in cache
+                        # Remove oldest entries (at least 100)
+                        urls_to_remove = list(self.content_html_cache.keys())[:100]
+                        for old_url in urls_to_remove:
+                            del self.content_html_cache[old_url]
+                    
+                    # Store HTML content in cache (use raw HTML to save memory)
+                    self.content_html_cache[url] = raw_html
+                
+                # Evaluate page quality for intelligent navigation
+                try:
+                    quality_score, quality_metrics = evaluate_page_quality(response.content, url)
+                    
+                    # Store page quality score with thread safety
+                    with self.__class__._lock:
+                        self.page_quality_scores[url] = quality_score
+                        
+                        # Update domain quality scores
+                        domain = get_domain_from_url(url)
+                        if domain in self.domain_quality_scores:
+                            current_score, count = self.domain_quality_scores[domain]
+                            # Calculate new average
+                            new_score = (current_score * count + quality_score) / (count + 1)
+                            self.domain_quality_scores[domain] = (new_score, count + 1)
+                        else:
+                            self.domain_quality_scores[domain] = (quality_score, 1)
+                            
+                    logger.debug(f"Page quality for {url}: {quality_score:.2f} (word count: {quality_metrics.get('word_count', 0)})")
+                except Exception as e:
+                    logger.warning(f"Error evaluating page quality for {url}: {str(e)}")
                 
                 # Calculate processing time in milliseconds
                 processing_time = int((time.time() - start_time) * 1000)
@@ -426,6 +464,11 @@ class WebCrawler:
             if not self.configuration.follow_external_links and domain != link_domain:
                 continue
             
+            # Track parent-child relationships using thread-safe approach
+            with self.__class__._lock:
+                # Store parent URL for each discovered URL for context-aware decision making
+                self.url_parents[full_url] = base_url
+            
             # Score the link using our intelligence engine
             if self.link_intelligence:
                 score = self.link_intelligence.score_link(full_url, a_tag, base_url)
@@ -527,12 +570,16 @@ class WebCrawler:
                         if success:
                             successful += 1
                             current_batch['successful'] += 1
-                            # If we haven't reached max depth, collect new links
-                            if depth < self.configuration.max_depth:
-                                for link in links:
-                                    if link not in self.visited_urls and link not in self.failed_urls:
+                            # Determine whether to collect links based on depth or quality
+                            should_collect = (depth < self.configuration.max_depth or 
+                                              self.should_extend_depth(url, depth))
+                            
+                            if should_collect:
+                                for link, score in links:
+                                    link_url = link  # Extract just the URL
+                                    if link_url not in self.visited_urls and link_url not in self.failed_urls:
                                         # Only add URLs we haven't processed yet
-                                        new_urls.append((link, depth + 1))
+                                        new_urls.append((link_url, depth + 1))
                         else:
                             failed += 1
                             current_batch['failed'] += 1
@@ -606,9 +653,10 @@ class WebCrawler:
                 
                 # Main crawling loop - process each level of depth before moving to the next
                 max_depth = self.configuration.max_depth
+                absolute_max_depth = max_depth + 2  # Allow extended depth for high-quality content
                 current_depth = 0
                 
-                while domain_groups and current_depth <= max_depth:
+                while domain_groups and current_depth <= absolute_max_depth:
                     # Check if job has been flagged to stop
                     if self.__class__.check_if_should_stop(self.job_id):
                         logger.info(f"Job {self.job_id} has been flagged to stop. Finishing gracefully.")
@@ -621,7 +669,9 @@ class WebCrawler:
                             if self.job_id in self.__class__.active_jobs:
                                 del self.__class__.active_jobs[self.job_id]
                         return
-                    self.update_job_status(self.job.status, log=f"Processing depth {current_depth}, domains: {list(domain_groups.keys())}")
+                    # Add note when we're in extended depth mode
+                    depth_type = "standard" if current_depth <= max_depth else "extended"
+                    self.update_job_status(self.job.status, log=f"Processing {depth_type} depth {current_depth}, domains: {list(domain_groups.keys())}")
                     
                     # Set up shared results with thread synchronization
                     import threading
@@ -636,8 +686,17 @@ class WebCrawler:
                     # Create worker threads for each domain
                     threads = []
                     for domain, urls in domain_groups.items():
-                        # Only process URLs at current depth
-                        urls_at_depth = [url_tuple for url_tuple in urls if url_tuple[1] == current_depth]
+                        # For standard depth levels, process only URLs at current depth
+                        if current_depth <= max_depth:
+                            urls_at_depth = [url_tuple for url_tuple in urls if url_tuple[1] == current_depth]
+                        else:
+                            # For extended depth levels, only process URLs that should extend based on quality
+                            urls_at_depth = []
+                            for url_tuple in urls:
+                                url, depth = url_tuple
+                                if depth == current_depth and self.should_extend_depth(url, depth):
+                                    urls_at_depth.append(url_tuple)
+                        
                         if not urls_at_depth:
                             continue
                             
@@ -696,6 +755,83 @@ class WebCrawler:
                 if self.job_id in self.__class__.active_jobs:
                     del self.__class__.active_jobs[self.job_id]
 
+    def should_extend_depth(self, url, current_depth):
+        """
+        Determine whether to crawl beyond the standard maximum depth
+        based on quality indicators.
+        
+        Args:
+            url (str): The URL to evaluate
+            current_depth (int): Current crawl depth
+            
+        Returns:
+            bool: True if should crawl beyond standard depth, False otherwise
+        """
+        try:
+            # Never exceed absolute maximum (standard + 2)
+            if not hasattr(self, 'configuration') or not self.configuration:
+                return False
+                
+            absolute_max = self.configuration.max_depth + 2
+            if current_depth >= absolute_max:
+                return False
+                
+            # Within standard depth - always proceed
+            if current_depth < self.configuration.max_depth:
+                return True
+            
+            # Beyond standard depth - apply quality heuristics
+            
+            # 1. Check parent quality
+            parent_url = self.url_parents.get(url)
+            if parent_url:
+                parent_quality = self.page_quality_scores.get(parent_url, 0.5)
+                if parent_quality > 0.75:
+                    logger.info(f"Extending depth for URL {url} due to high-quality parent: {parent_quality:.2f}")
+                    return True
+            
+            # 2. Check domain average quality
+            domain = get_domain_from_url(url)
+            if domain in self.domain_quality_scores:
+                domain_quality, _ = self.domain_quality_scores[domain]
+                if domain_quality > 0.7:
+                    logger.info(f"Extending depth for URL {url} due to high-quality domain: {domain_quality:.2f}")
+                    return True
+            
+            # 3. Check link promise based on intelligence
+            if self.link_intelligence and parent_url:
+                # Extract additional context if possible
+                context = None
+                if parent_url in self.content_html_cache:
+                    try:
+                        # Parse the parent HTML to find the specific link
+                        parent_html = self.content_html_cache.get(parent_url)
+                        parent_soup = BeautifulSoup(parent_html, 'html.parser')
+                        for a_tag in parent_soup.find_all('a', href=True):
+                            href = a_tag['href']
+                            full_url = urljoin(parent_url, href)
+                            if full_url == url:
+                                context = a_tag
+                                break
+                    except Exception as e:
+                        logger.warning(f"Error extracting link context: {str(e)}")
+                
+                # Score the link
+                try:
+                    link_score = self.link_intelligence.score_link(url, context, parent_url)
+                    if link_score > 0.8:
+                        logger.info(f"Extending depth for URL {url} due to promising link score: {link_score:.2f}")
+                        return True
+                except Exception as e:
+                    logger.warning(f"Error scoring link for depth decision: {str(e)}")
+            
+            # Default: follow standard depth rules
+            return False
+            
+        except Exception as e:
+            logger.warning(f"Error in depth decision for {url}: {str(e)}")
+            return False  # Default to safe option on error
+    
     def start_async(self):
         """Start the crawling process in a separate thread without blocking"""
         from app import app

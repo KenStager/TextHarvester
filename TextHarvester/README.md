@@ -22,6 +22,7 @@ The system is designed to be memory-efficient, handling large-scale crawling job
   - Rate limiting and robots.txt compliance
   - User agent rotation and request throttling
   - Robust error handling and retry mechanisms
+  - **Intelligent navigation system for adaptive crawling**
 
 - **Intelligent content extraction**
   - Precise main content detection with trafilatura
@@ -56,6 +57,7 @@ The system is designed to be memory-efficient, handling large-scale crawling job
    - Set crawl depth, rate limiting, and other parameters
    - Choose whether to follow external links
    - Configure robots.txt compliance options
+   - Benefit from automatic intelligent navigation for quality-based crawling
 
 3. **Run Scraping Jobs**:
    - Start jobs with specific source lists
@@ -204,6 +206,18 @@ The crawler utilizes a thread-based parallel architecture where:
 - A thread-safe registry tracks active jobs and manages graceful shutdown
 - Direct SQL updates are used for critical operations to ensure transaction safety
 - URL queues are managed per-domain to respect rate limiting requirements
+- Intelligent navigation makes quality-based decisions for deeper, more focused crawling
+
+#### Intelligent Navigation System
+
+The crawler now features an advanced intelligent navigation system that:
+- **Adaptively adjusts crawl depth** based on content quality metrics rather than using a uniform maximum depth
+- **Tracks parent-child relationships** between URLs to provide context for navigation decisions
+- **Evaluates page quality** using metrics like word count, paragraph density, and text-to-HTML ratio
+- **Makes dynamic depth decisions** based on parent page quality, domain averages, and link scoring
+- **Optimizes resource usage** by extending depth only for high-value content paths
+
+This system automatically identifies and prioritizes high-quality content sources, exploring them more deeply while limiting exploration of low-value paths. See the detailed documentation in `docs/intelligent_navigation.md`.
 
 ### Content Extraction
 
@@ -273,13 +287,15 @@ This format is directly compatible with Prodigy and other annotation tools for N
 - For very large crawls (>10,000 pages), consider using multiple smaller jobs
 - HTML content can significantly increase database size; consider disabling raw HTML storage for large projects
 - External URL following should be used cautiously to prevent unbounded crawls
+- The intelligent navigation system extends crawl depth for high-quality content but is capped at a maximum of `max_depth + 2`
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. Areas for future development include:
 
 - Additional content extractors for specialized content types
-- AI-based content quality assessment
+- Enhanced intelligent navigation with machine learning models
+- Further refinement of quality metrics and scoring algorithms
 - Integration with vector databases for similarity search
 - Annotation workflow integration
 - Content deduplication algorithms
