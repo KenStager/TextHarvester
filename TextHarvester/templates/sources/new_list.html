@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Source List - Web Scraper</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('api.index') }}">
+                <i class="bi bi-code-square me-2"></i>Web Scraper
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.index') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.configuration') }}">Configurations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('sources.index') }}">Sources</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('sources.index') }}">Sources</a></li>
+                        <li class="breadcrumb-item active">New Source List</li>
+                    </ol>
+                </nav>
+                <h1 class="fs-2">Create New Source List</h1>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card bg-dark">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">List Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="{{ url_for('sources.new_source_list') }}">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">List Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                                <div class="form-text">A descriptive name for this source list.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                                <div class="form-text">Optional description explaining what sources this list contains.</div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="{{ url_for('sources.index') }}" class="btn btn-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-lg me-2"></i>Create Source List
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-dark">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Source List Tips</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6>How to Organize Sources</h6>
+                            <p>Create lists to group sources by topic, site type, or research area.</p>
+                            <ul>
+                                <li>Research and academic sources</li>
+                                <li>Industry news and company blogs</li>
+                                <li>News sites by topic</li>
+                                <li>Professional forums and communities</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6>Example Use Cases</h6>
+                            <ul>
+                                <li>Domain-specific research and publications</li>
+                                <li>Industry news and trends monitoring</li>
+                                <li>Subject matter expertise documentation</li>
+                                <li>Competitive intelligence gathering</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

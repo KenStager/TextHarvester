@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Status - Web Scraper</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    <style>
+        .chart-container {
+            height: 250px;
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+        .stats-card {
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--bs-secondary);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">Web Scraper</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/config">New Configuration</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary bg-opacity-25">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h2 class="card-title">Job #{{ job.id }} Status</h2>
+                            <div>
+                                {% if job.status.value == 'completed' or job.status.value == 'running' and content_count > 0 %}
+                                <a href="{{ url_for('api.view_job_content', job_id=job.id) }}" class="btn btn-primary me-2">
+                                    <i class="bi bi-list-ul"></i> View Content
+                                </a>
+                                <a href="{{ url_for('api.export_job', job_id=job.id) }}" class="btn btn-success me-2">
+                                    <i class="bi bi-file-earmark-arrow-down"></i> Export for NER/SpanCat
+                                </a>
+                                {% endif %}
+                                {% if job.status.value == 'running' %}
+                                <button type="button" class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#stopJobModal">
+                                    <i class="bi bi-stop-circle"></i> Stop Job
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal" data-bs-target="#deleteJobModal">
+                                    <i class="bi bi-trash"></i> Delete Job
+                                </button>
+                                <a href="/" class="btn btn-outline-secondary">Back to Dashboard</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body" id="job-status-container" data-job-id="{{ job.id }}">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h4>Job Information</h4>
+                                <table class="table">
+                                    <tbody>
+                                        <tr>
+                                            <th>Status:</th>
+                                            <td>
+                                                {% if job.status.value == 'pending' %}
+                                                <span id="status-badge" class="badge bg-secondary">Pending</span>
+                                                {% elif job.status.value == 'running' %}
+                                                <span id="status-badge" class="badge bg-primary">Running</span>
+                                                {% elif job.status.value == 'completed' %}
+                                                <span id="status-badge" class="badge bg-success">Completed</span>
+                                                {% elif job.status.value == 'failed' %}
+                                                <span id="status-badge" class="badge bg-danger">Failed</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Configuration:</th>
+                                            <td>{{ job.configuration.name }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Created At:</th>
+                                            <td>{{ job.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Start Time:</th>
+                                            <td id="start-time">{{ job.start_time.strftime('%Y-%m-%d %H:%M:%S') if job.start_time else 'Not started yet' }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>End Time:</th>
+                                            <td id="end-time">{{ job.end_time.strftime('%Y-%m-%d %H:%M:%S') if job.end_time else 'Not completed yet' }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h4>Job Statistics</h4>
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <div class="row text-center">
+                                            <div class="col-4">
+                                                <h5>Processed</h5>
+                                                <h2 id="urls-processed" class="text-primary">{{ job.urls_processed }}</h2>
+                                            </div>
+                                            <div class="col-4">
+                                                <h5>Successful</h5>
+                                                <h2 id="urls-successful" class="text-success">{{ job.urls_successful }}</h2>
+                                            </div>
+                                            <div class="col-4">
+                                                <h5>Failed</h5>
+                                                <h2 id="urls-failed" class="text-danger">{{ job.urls_failed }}</h2>
+                                            </div>
+                                        </div>
+                                        {% if job.status.value == 'running' %}
+                                        <div class="mt-3">
+                                            <small class="text-muted">Auto-refreshing every 5 seconds. <a href="javascript:window.location.reload()">Refresh manually</a></small>
+                                            <script>
+                                                // Simple direct page refresh approach
+                                                setTimeout(function() {
+                                                    if (document.querySelector('#status-badge').textContent === 'Running') {
+                                                        window.location.reload();
+                                                    }
+                                                }, 5000);
+                                            </script>
+                                        </div>
+                                        
+                                        {% if content_count > 0 %}
+                                        <div class="alert alert-primary mt-3">
+                                            <div class="d-flex">
+                                                <div class="me-3">
+                                                    <i class="bi bi-file-earmark-arrow-down fs-3"></i>
+                                                </div>
+                                                <div>
+                                                    <h5 class="mb-1">Partial Export Available</h5>
+                                                    <p class="mb-1">You can export the {{ content_count }} items collected so far while the job continues running.</p>
+                                                    <a href="{{ url_for('api.export_job', job_id=job.id) }}" class="btn btn-sm btn-primary mt-2">
+                                                        <i class="bi bi-file-earmark-arrow-down me-1"></i> Export Current Data
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5>Content Scraped</h5>
+                                        <p class="display-4 text-center">{{ content_count }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if content_count > 0 and analytics %}
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h4>Enhanced Analytics</h4>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <ul class="nav nav-tabs" id="analyticsTab" role="tablist">
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="domains-tab" data-bs-toggle="tab" data-bs-target="#domains-tab-pane" type="button" role="tab" aria-controls="domains-tab-pane" aria-selected="true">Domain Distribution</button>
+                                            </li>
+                                            {% if analytics.get('content_types') %}
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="content-types-tab" data-bs-toggle="tab" data-bs-target="#content-types-tab-pane" type="button" role="tab" aria-controls="content-types-tab-pane" aria-selected="false">Content Types</button>
+                                            </li>
+                                            {% endif %}
+                                            {% if analytics.get('languages') %}
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="languages-tab" data-bs-toggle="tab" data-bs-target="#languages-tab-pane" type="button" role="tab" aria-controls="languages-tab-pane" aria-selected="false">Languages</button>
+                                            </li>
+                                            {% endif %}
+                                            {% if analytics.get('word_count') %}
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="word-count-tab" data-bs-toggle="tab" data-bs-target="#word-count-tab-pane" type="button" role="tab" aria-controls="word-count-tab-pane" aria-selected="false">Word Count</button>
+                                            </li>
+                                            {% endif %}
+                                            {% if analytics.get('crawl_depth') %}
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="depth-tab" data-bs-toggle="tab" data-bs-target="#depth-tab-pane" type="button" role="tab" aria-controls="depth-tab-pane" aria-selected="false">Crawl Depth</button>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                        
+                                        <div class="tab-content pt-4" id="analyticsTabContent">
+                                            <!-- Domain Distribution -->
+                                            <div class="tab-pane fade show active" id="domains-tab-pane" role="tabpanel" aria-labelledby="domains-tab" tabindex="0">
+                                                <div class="row">
+                                                    <div class="col-md-8">
+                                                        <div class="chart-container">
+                                                            <canvas id="domainChart"></canvas>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <h5>Top Domains</h5>
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Domain</th>
+                                                                        <th class="text-end">Count</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for domain, count in analytics['domains'].items() %}
+                                                                    <tr>
+                                                                        <td class="text-truncate" style="max-width: 200px;">{{ domain }}</td>
+                                                                        <td class="text-end">{{ count }}</td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Content Types -->
+                                            {% if analytics.get('content_types') %}
+                                            <div class="tab-pane fade" id="content-types-tab-pane" role="tabpanel" aria-labelledby="content-types-tab" tabindex="0">
+                                                <div class="row">
+                                                    <div class="col-md-8">
+                                                        <div class="chart-container">
+                                                            <canvas id="contentTypeChart"></canvas>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <h5>Content Type Distribution</h5>
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Type</th>
+                                                                        <th class="text-end">Count</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for content_type, count in analytics['content_types'].items() %}
+                                                                    <tr>
+                                                                        <td>{{ content_type }}</td>
+                                                                        <td class="text-end">{{ count }}</td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <!-- Languages -->
+                                            {% if analytics.get('languages') %}
+                                            <div class="tab-pane fade" id="languages-tab-pane" role="tabpanel" aria-labelledby="languages-tab" tabindex="0">
+                                                <div class="row">
+                                                    <div class="col-md-8">
+                                                        <div class="chart-container">
+                                                            <canvas id="languageChart"></canvas>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <h5>Language Distribution</h5>
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Language</th>
+                                                                        <th class="text-end">Count</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for language, count in analytics['languages'].items() %}
+                                                                    <tr>
+                                                                        <td>{{ language }}</td>
+                                                                        <td class="text-end">{{ count }}</td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <!-- Word Count -->
+                                            {% if analytics.get('word_count') %}
+                                            <div class="tab-pane fade" id="word-count-tab-pane" role="tabpanel" aria-labelledby="word-count-tab" tabindex="0">
+                                                <div class="row">
+                                                    <div class="col-md-8">
+                                                        <div class="chart-container">
+                                                            <canvas id="wordCountChart"></canvas>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <h5>Word Count Statistics</h5>
+                                                        <table class="table">
+                                                            <tbody>
+                                                                <tr>
+                                                                    <th>Minimum:</th>
+                                                                    <td>{{ analytics['word_count']['min'] }}</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th>Maximum:</th>
+                                                                    <td>{{ analytics['word_count']['max'] }}</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th>Average:</th>
+                                                                    <td>{{ analytics['word_count']['avg']|round(1) }}</td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <!-- Crawl Depth -->
+                                            {% if analytics.get('crawl_depth') %}
+                                            <div class="tab-pane fade" id="depth-tab-pane" role="tabpanel" aria-labelledby="depth-tab" tabindex="0">
+                                                <div class="row">
+                                                    <div class="col-md-8">
+                                                        <div class="chart-container">
+                                                            <canvas id="depthChart"></canvas>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <h5>Crawl Depth Distribution</h5>
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Depth</th>
+                                                                        <th class="text-end">Pages</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for depth, count in analytics['crawl_depth'].items() %}
+                                                                    <tr>
+                                                                        <td>{{ depth }}</td>
+                                                                        <td class="text-end">{{ count }}</td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if job.log_output %}
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h4>Job Logs</h4>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <pre class="bg-dark text-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">{{ job.log_output }}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <h4>Configuration Details</h4>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <table class="table">
+                                            <tbody>
+                                                <tr>
+                                                    <th>Base URLs:</th>
+                                                    <td>
+                                                        <ul>
+                                                            {% for url in job.configuration.base_urls %}
+                                                            <li>{{ url }}</li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Max Depth:</th>
+                                                    <td>{{ job.configuration.max_depth }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Follow External Links:</th>
+                                                    <td>{{ 'Yes' if job.configuration.follow_external_links else 'No' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Respect robots.txt:</th>
+                                                    <td>{{ 'Yes' if job.configuration.respect_robots_txt else 'No' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>User Agent Rotation:</th>
+                                                    <td>{{ 'Yes' if job.configuration.user_agent_rotation else 'No' }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Rate Limit:</th>
+                                                    <td>{{ job.configuration.rate_limit_seconds }} seconds</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Max Retries:</th>
+                                                    <td>{{ job.configuration.max_retries }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-dark">
+        <div class="container text-center">
+            <span class="text-muted">Web Scraper for Structured Data Collection</span>
+        </div>
+    </footer>
+
+    <!-- Delete Job Confirmation Modal -->
+    <div class="modal fade" id="deleteJobModal" tabindex="-1" aria-labelledby="deleteJobModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteJobModalLabel">Confirm Job Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete Job #{{ job.id }}?</p>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This will permanently delete the job and all associated content ({{ content_count }} items). This action cannot be undone.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form action="{{ url_for('api.delete_job', job_id=job.id) }}" method="post">
+                        <button type="submit" class="btn btn-danger">Delete Job</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stop Job Modal -->
+    <div class="modal fade" id="stopJobModal" tabindex="-1" aria-labelledby="stopJobModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="stopJobModalLabel">Confirm Stop Job</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to stop Job #{{ job.id }}?</p>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Note:</strong> This will gracefully stop the job, saving all content collected so far ({{ content_count }} items). The job will be marked as completed early, but all data will be preserved.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form action="{{ url_for('api.stop_job', job_id=job.id) }}" method="post">
+                        <button type="submit" class="btn btn-warning">Stop Job</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if content_count > 0 and analytics %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Common chart options
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                }
+            };
+            
+            // Color scheme for charts
+            const colors = [
+                'rgba(54, 162, 235, 0.7)',
+                'rgba(255, 99, 132, 0.7)',
+                'rgba(75, 192, 192, 0.7)',
+                'rgba(255, 159, 64, 0.7)',
+                'rgba(153, 102, 255, 0.7)',
+                'rgba(255, 205, 86, 0.7)',
+                'rgba(201, 203, 207, 0.7)',
+                'rgba(255, 99, 71, 0.7)',
+                'rgba(50, 205, 50, 0.7)',
+                'rgba(138, 43, 226, 0.7)'
+            ];
+            
+            {% if analytics.get('domains') %}
+            // Domain Distribution Chart
+            const domainLabels = {{ analytics['domains'].keys()|list|tojson }};
+            const domainData = {{ analytics['domains'].values()|list|tojson }};
+            
+            new Chart(document.getElementById('domainChart'), {
+                type: 'bar',
+                data: {
+                    labels: domainLabels,
+                    datasets: [{
+                        label: 'Pages per Domain',
+                        data: domainData,
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c.replace('0.7', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'y',
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Domain Distribution'
+                        }
+                    }
+                }
+            });
+            {% endif %}
+            
+            {% if analytics.get('content_types') %}
+            // Content Type Chart
+            const contentTypeLabels = {{ analytics['content_types'].keys()|list|tojson }};
+            const contentTypeData = {{ analytics['content_types'].values()|list|tojson }};
+            
+            new Chart(document.getElementById('contentTypeChart'), {
+                type: 'pie',
+                data: {
+                    labels: contentTypeLabels,
+                    datasets: [{
+                        data: contentTypeData,
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c.replace('0.7', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Content Type Distribution'
+                        }
+                    }
+                }
+            });
+            {% endif %}
+            
+            {% if analytics.get('languages') %}
+            // Language Chart
+            const languageLabels = {{ analytics['languages'].keys()|list|tojson }};
+            const languageData = {{ analytics['languages'].values()|list|tojson }};
+            
+            new Chart(document.getElementById('languageChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: languageLabels,
+                    datasets: [{
+                        data: languageData,
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c.replace('0.7', '1')),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Language Distribution'
+                        }
+                    }
+                }
+            });
+            {% endif %}
+            
+            {% if analytics.get('word_count') and analytics['word_count'].get('distribution') %}
+            // Word Count Distribution Chart
+            const wordCountLabels = {{ analytics['word_count']['distribution'].keys()|list|tojson }};
+            const wordCountData = {{ analytics['word_count']['distribution'].values()|list|tojson }};
+            
+            new Chart(document.getElementById('wordCountChart'), {
+                type: 'bar',
+                data: {
+                    labels: wordCountLabels,
+                    datasets: [{
+                        label: 'Number of Documents',
+                        data: wordCountData,
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Word Count Distribution'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Documents'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Word Count Range'
+                            }
+                        }
+                    }
+                }
+            });
+            {% endif %}
+            
+            {% if analytics.get('crawl_depth') %}
+            // Crawl Depth Chart
+            const depthLabels = Object.keys({{ analytics['crawl_depth']|tojson }}).map(d => 'Depth ' + d);
+            const depthData = Object.values({{ analytics['crawl_depth']|tojson }});
+            
+            new Chart(document.getElementById('depthChart'), {
+                type: 'bar',
+                data: {
+                    labels: depthLabels,
+                    datasets: [{
+                        label: 'Pages at Depth',
+                        data: depthData,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Crawl Depth Distribution'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Pages'
+                            }
+                        }
+                    }
+                }
+            });
+            {% endif %}
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

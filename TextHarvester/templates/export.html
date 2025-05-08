@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Export Job Data{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    // Add tooltip initializations for this page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Data Export tooltip 
+        addAnimatedTooltip(
+            '#data-export-help',
+            'Data Export Explained',
+            'Exporting data formats your scraped content for annotation tools. JSONL is ideal for NER/SpanCat tasks and can be directly imported into annotation tools like Prodigy.',
+            'data-export',
+            'right'
+        );
+        
+        // Chunking tooltip
+        addAnimatedTooltip(
+            '#chunking-help',
+            'Text Chunking Strategy',
+            'Breaking text into smaller chunks improves annotation efficiency. The overlap ensures entities spanning chunk boundaries aren\'t missed during annotation.',
+            'web-scraping',
+            'top'
+        );
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="row mb-4">
+            <div class="col">
+                <h1>Export Job Data for Annotation</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('api.index') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('api.job_status', job_id=job.id) }}">Job #{{ job.id }}</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Export</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card bg-dark">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Job Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>ID:</strong> {{ job.id }}</p>
+                        <p><strong>Configuration:</strong> {{ job.configuration.name }}</p>
+                        <p><strong>Status:</strong> <span class="badge {% if job.status.value == 'completed' %}bg-success{% elif job.status.value == 'failed' %}bg-danger{% elif job.status.value == 'running' %}bg-info{% else %}bg-secondary{% endif %}">{{ job.status.value }}</span>
+                            {% if job.status.value == 'running' %}
+                            <div class="alert alert-info mt-2">
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <i class="bi bi-info-circle fs-3"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-1">Job In Progress</h5>
+                                        <p class="mb-0">This job is still running. You can export content scraped so far, and return later for the complete dataset.</p>
+                                        <p class="mb-0"><strong>Current progress:</strong> {{ job.urls_processed }} URLs processed ({{ job.urls_successful }} successful, {{ job.urls_failed }} failed)</p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </p>
+                        <p><strong>Created:</strong> {{ job.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        <p><strong>URLs Processed:</strong> {{ job.urls_processed }}</p>
+                        <p><strong>URLs Successful:</strong> {{ job.urls_successful }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card bg-dark">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Export Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('api.export_job', job_id=job.id) }}">
+                            <div class="alert alert-info">
+                                <div class="d-flex align-items-center">
+                                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Export Format Information</h5>
+                                    <i id="data-export-help" class="bi bi-question-circle help-icon ms-2"></i>
+                                </div>
+                                <p class="mt-2">Data will be exported in JSONL format for named entity recognition (NER) and span categorization tasks:</p>
+                                <ul>
+                                    <li>Each line is a self-contained JSON object with <code>text</code> and <code>meta</code> fields</li>
+                                    <li>Long texts are split into smaller chunks with optional overlap</li>
+                                    <li>Metadata includes source URL, date, and other contextual information</li>
+                                </ul>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center">
+                                    <label for="chunk_size" class="form-label mb-0">Max Chunk Size (words)</label>
+                                    <i id="chunking-help" class="bi bi-question-circle help-icon ms-2"></i>
+                                </div>
+                                <input type="number" class="form-control mt-2" id="chunk_size" name="chunk_size" value="500" min="100" max="2000">
+                                <div class="form-text">Maximum number of words per chunk. Smaller chunks (200-500 words) are easier to annotate.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="overlap" class="form-label">Chunk Overlap (words)</label>
+                                <input type="number" class="form-control" id="overlap" name="overlap" value="50" min="0" max="200">
+                                <div class="form-text">Number of words to overlap between chunks to maintain context.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="download" name="download" checked>
+                                    <label class="form-check-label" for="download">
+                                        Download file after export
+                                    </label>
+                                    <div class="form-text">If unchecked, the file will be saved on the server only.</div>
+                                </div>
+                            </div>
+                            
+                            {% if content_count > 1000 %}
+                            <div class="mb-3">
+                                <div class="alert alert-info">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <i class="bi bi-database fs-2"></i>
+                                        </div>
+                                        <div>
+                                            <h5>Large Dataset Detected</h5>
+                                            <p class="mb-0">You have {{ content_count }} items to export. For large datasets, streaming is recommended to prevent memory issues.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="stream" name="stream" {% if content_count > 5000 %}checked{% endif %}>
+                                    <label class="form-check-label" for="stream">
+                                        <strong>Use streaming export</strong> (recommended for large datasets)
+                                    </label>
+                                    <div class="form-text">Streams data directly to your browser without storing a temporary file. Better for memory usage with large datasets.</div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <div class="d-flex align-items-center">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-file-earmark-arrow-down me-2"></i>Export to JSONL
+                                </button>
+                                
+                                {% if content_count %}
+                                <span class="ms-3 text-muted">{{ content_count }} items available for export</span>
+                                {% else %}
+                                <span class="ms-3 text-danger">No content available for export</span>
+                                {% endif %}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card bg-dark">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Annotation Guidelines</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6>Example Entity Types</h6>
+                            <ul>
+                                <li><strong>PRODUCT</strong>: Product names or identifiers</li>
+                                <li><strong>ORGANIZATION</strong>: Company or organization names</li>
+                                <li><strong>PERSON</strong>: Person names or identifiers</li>
+                                <li><strong>LOCATION</strong>: Geographic locations</li>
+                                <li><strong>DATE</strong>: Dates, time periods</li>
+                                <li><strong>METRIC</strong>: Measurements, statistics</li>
+                                <li><strong>CUSTOM</strong>: Domain-specific entities</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6>Next Steps</h6>
+                            <ol>
+                                <li>Download the JSONL file</li>
+                                <li>Import into Prodigy for annotation</li>
+                                <li>Use <code>ner.manual</code> or <code>span.manual</code> recipe</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

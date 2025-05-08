@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Source List: {{ source_list.name }}</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('api.index') }}">
+                <i class="bi bi-code-square me-2"></i>Web Scraper
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.index') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.configuration') }}">Configurations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('sources.index') }}">Sources</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('api.index') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('sources.index') }}">Sources</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('sources.view_source_list', list_id=source_list.id) }}">{{ source_list.name }}</a></li>
+            <li class="breadcrumb-item active">Test Results</li>
+        </ol>
+    </nav>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4>Source List Test Results: {{ source_list.name }}</h4>
+                    <div>
+                        <a href="{{ url_for('sources.view_source_list', list_id=source_list.id) }}" class="btn btn-sm btn-outline-primary">Back to List</a>
+                        <a href="{{ url_for('sources.test_source_list', list_id=source_list.id) }}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-arrow-repeat me-1"></i>Run Test Again
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+                            <div>
+                                <strong>Test Summary</strong>
+                                <div>Tested {{ results.total_sources }} sources at {{ results.timestamp }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card text-white bg-success mb-3">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Successful</h5>
+                                    <h2 class="display-4">{{ results.successful }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-white bg-danger mb-3">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Failed</h5>
+                                    <h2 class="display-4">{{ results.failed }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-white bg-secondary mb-3">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">Success Rate</h5>
+                                    <h2 class="display-4">
+                                        {{ "%.0f"|format(results.successful / results.total_sources * 100) if results.total_sources > 0 else 0 }}%
+                                    </h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3">Source Results</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Source</th>
+                                    <th>URL</th>
+                                    <th>Status</th>
+                                    <th>Response</th>
+                                    <th>Time</th>
+                                    <th>Text Size</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for result in results.source_results %}
+                                <tr>
+                                    <td>{{ result.name }}</td>
+                                    <td>
+                                        <a href="{{ result.url }}" target="_blank" class="text-truncate d-inline-block" style="max-width: 200px;" data-bs-toggle="tooltip" title="{{ result.url }}">
+                                            {{ result.url }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if result.status == 'success' %}
+                                        <span class="badge bg-success">Success</span>
+                                        {% elif result.status == 'failed' %}
+                                        <span class="badge bg-danger">Failed</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Not Tested</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.status_code %}
+                                        <span class="badge {% if result.status_code == 200 %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ result.status_code }}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.response_time %}
+                                        {{ result.response_time }}ms
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if result.extracted_text_length %}
+                                        {{ result.extracted_text_length }} chars
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('sources.test_source', source_id=result.source_id) }}" class="btn btn-info" data-bs-toggle="tooltip" title="Test individually">
+                                                <i class="bi bi-check2-circle"></i>
+                                            </a>
+                                            <a href="{{ url_for('sources.edit_source', source_id=result.source_id) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Edit source">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% if result.error %}
+                                <tr class="table-danger">
+                                    <td colspan="7" class="text-danger">
+                                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                        <strong>Error:</strong> {{ result.error }}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="card mt-4 bg-info bg-opacity-10">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Tips for Improving Success Rate</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="mb-0">
+                                <li>For <strong>403 Forbidden</strong> errors, try using different user agents or adding a delay between requests.</li>
+                                <li>For <strong>Connection Errors</strong>, check if the URL is correct and the domain is accessible.</li>
+                                <li>For <strong>Timeout Errors</strong>, try increasing the timeout settings or check if the site is slow or blocking scraping.</li>
+                                <li>Use a <strong>Proxy Service</strong> for sites that actively block scraping or have IP-based limitations.</li>
+                                <li>Set <strong>Rate Limiting</strong> to avoid overwhelming a site with too many requests in a short period.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="{{ url_for('sources.view_source_list', list_id=source_list.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Back to Source List
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        });
+    </script>
+</body>
+</html>

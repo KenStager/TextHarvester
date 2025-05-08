@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if config else 'Create' }} Scraping Configuration{% endblock %}
+
+{% block additional_scripts %}
+<script src="/static/js/main.js"></script>
+<script>
+    // Add tooltip initializations for this page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Web Scraping tooltip
+        addAnimatedTooltip(
+            '#crawling-help',
+            'Web Scraping Explained',
+            'Web scraping is the process of automatically collecting information from websites. The crawler follows links and saves content based on your configuration settings.',
+            'web-scraping',
+            'right'
+        );
+
+        // Source Management tooltip
+        addAnimatedTooltip(
+            '#source-help',
+            'Source Management',
+            'Sources can be organized into lists for easier management. Create reusable source lists for different topics or research areas.',
+            'source-management',
+            'top'
+        );
+
+        // Export Data tooltip
+        addAnimatedTooltip(
+            '#export-help',
+            'Data Export Options',
+            'Scraped content can be exported in JSONL format, ideal for NER/SpanCat annotation in tools like Prodigy. Large datasets use streaming for better performance.',
+            'data-export',
+            'left'
+        );
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary bg-opacity-25">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <h2 class="card-title mb-0">{{ 'Edit' if config else 'Create' }} Scraping Configuration</h2>
+                                <i id="crawling-help" class="bi bi-question-circle help-icon ms-2"></i>
+                            </div>
+                            <a href="/" class="btn btn-outline-secondary">Back to Dashboard</a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="alert-container">
+                            <!-- Alerts will be displayed here -->
+                        </div>
+                        
+                        <form id="config-form" method="post" action="/config">
+                            {% if config %}
+                            <input type="hidden" name="config_id" value="{{ config.id }}">
+                            {% endif %}
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="name" class="form-label">Configuration Name *</label>
+                                        <input type="text" class="form-control" id="name" name="name" value="{{ config.name if config else '' }}" required>
+                                        <div class="form-text">A descriptive name for this scraping configuration</div>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label for="description" class="form-label">Description</label>
+                                        <textarea class="form-control" id="description" name="description" rows="3">{{ config.description if config else '' }}</textarea>
+                                        <div class="form-text">Optional description of this scraping job</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <label for="predefined_source" class="form-label mb-0">Source List</label>
+                                            <i id="source-help" class="bi bi-question-circle help-icon ms-2"></i>
+                                        </div>
+                                        <select class="form-control mt-2" id="predefined_source" name="predefined_source">
+                                            <option value="custom">Custom URLs</option>
+                                            {% for list_id, source_list in predefined_sources.items() %}
+                                            <option value="{{ list_id }}">{{ source_list.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="form-text">Select a predefined source list or use custom URLs</div>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3" id="custom_urls_container">
+                                        <label for="base_urls" class="form-label">Base URLs *</label>
+                                        <textarea class="form-control" id="base_urls" name="base_urls" rows="6">{% if config %}{% for url in config.base_urls %}{{ url }}
+{% endfor %}{% endif %}</textarea>
+                                        <div class="form-text">Enter the URLs to scrape, one per line</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label for="max_depth" class="form-label">Max Crawl Depth</label>
+                                        <input type="number" class="form-control" id="max_depth" name="max_depth" min="1" value="{{ config.max_depth if config else 1 }}">
+                                        <div class="form-text">How deep to follow links (1 = only base URLs)</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label for="rate_limit" class="form-label">Rate Limit (seconds)</label>
+                                        <input type="number" class="form-control" id="rate_limit" name="rate_limit" min="1" value="{{ config.rate_limit_seconds if config else 5 }}">
+                                        <div class="form-text">Seconds to wait between requests to the same domain</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label for="max_retries" class="form-label">Max Retries</label>
+                                        <input type="number" class="form-control" id="max_retries" name="max_retries" min="0" value="{{ config.max_retries if config else 3 }}">
+                                        <div class="form-text">Number of times to retry failed requests</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5>Crawling Options</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="follow_external" name="follow_external" {% if config and config.follow_external_links %}checked{% endif %}>
+                                                <label class="form-check-label" for="follow_external">Follow External Links</label>
+                                                <div class="form-text">If enabled, the crawler will follow links to other domains</div>
+                                            </div>
+                                            
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="respect_robots" name="respect_robots" {% if not config or config.respect_robots_txt %}checked{% endif %}>
+                                                <label class="form-check-label" for="respect_robots">Respect robots.txt</label>
+                                                <div class="form-text">If enabled, the crawler will respect robots.txt rules</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5>Request Options</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="user_agent_rotation" name="user_agent_rotation" {% if not config or config.user_agent_rotation %}checked{% endif %}>
+                                                <label class="form-check-label" for="user_agent_rotation">User Agent Rotation</label>
+                                                <div class="form-text">If enabled, the crawler will use different user agents for each request</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2 text-muted">After creating a configuration, you can export scraped data</span>
+                                    <i id="export-help" class="bi bi-question-circle help-icon"></i>
+                                </div>
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="/" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">{{ 'Update' if config else 'Create' }} Configuration</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-dark">
+        <div class="container text-center">
+            <span class="text-muted">Web Scraper for Structured Data Collection</span>
+        </div>
+    </footer>
+{% endblock %}

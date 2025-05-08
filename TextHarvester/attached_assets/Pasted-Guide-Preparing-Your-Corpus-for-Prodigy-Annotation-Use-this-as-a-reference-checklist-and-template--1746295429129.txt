@@ -1,0 +1,97 @@
+Guide: Preparing Your Corpus for Prodigy Annotation
+
+Use this as a reference checklist and template library as you assemble blog posts, white papers, press releases, and other LLM-related texts for NER/span‐categorization workflows.
+
+⸻
+
+1. Choose Your Format
+	•	JSONL (newline-delimited JSON)
+	•	Why? Streams records one at a time, minimizes memory footprint, and lets you attach arbitrary fields.
+	•	Alternatives (if needed):
+	•	CSV with a text column
+	•	Plain .txt (one document per line)
+
+⸻
+
+2. Define Your Record Schema
+
+Every JSONL line should be a self-contained object with at minimum:
+
+{ "text":  "<raw document or snippet>" }
+
+Optional Fields for NER/Spans
+	•	spans
+List of pre-annotated spans (for review or correction):
+
+"spans": [
+  { "start": 10, "end": 16, "label": "MODEL_NAME" }
+]
+
+
+	•	tokens
+Token boundaries (if you want to control tokenization).
+	•	meta
+Freeform metadata for provenance or filtering:
+
+"meta": {
+  "source": "press_release_2025-04-30",
+  "url": "https://example.com/announcement",
+  "date": "2025-04-30"
+}
+
+
+
+⸻
+
+3. Splitting & Chunking
+	•	Paragraphs or Sliding Windows
+Break long documents into logical chunks (200–500 words) so annotators can focus.
+	•	Maintain Context
+Keep sentence boundaries intact and avoid cutting through entity mentions.
+
+⸻
+
+4. Seeding & Pre-Annotation
+	•	Term Lists
+Compile known LLM names, sizes, and types into a JSONL for span_term bootstrapping.
+	•	Existing Annotations
+If you have rough labels from other tools, embed them under spans to feed into correction UIs.
+
+⸻
+
+5. Metadata Best Practices
+	•	Use meta to record:
+	•	Source type (blog, paper, press release)
+	•	Publication date
+	•	Document ID or URL
+	•	Leverage this to slice and analyze annotation performance later.
+
+⸻
+
+6. Converting Raw Files
+
+Raw Type	Conversion Approach
+TXT	jq -R -c '{text: .}' raw.txt > data.jsonl
+CSV	Ensure a text header; then Prodigy will map each row to a record.
+Markdown	Strip formatting or use a script to extract paragraphs into JSONL.
+PDF/HTML	Use pdfminer, BeautifulSoup, or similar to extract text chunks.
+
+—or write a small Python/Node script to read files, wrap each chunk in a dict, and json.dumps() per line.
+
+⸻
+
+7. Iteration & Versioning
+	•	Track Versions of your JSONL as you refine chunking and metadata.
+	•	Archive Snapshots before major schema changes so you can replay the annotation history if needed.
+
+⸻
+
+8. Tips & Pitfalls
+	•	Keep examples bite-sized:  one or two entities per snippet speeds annotation.
+	•	Balance source types: mix news articles, academic abstracts, and blog posts to avoid model bias.
+	•	Validate offsets: run a quick script to ensure start/end indices match the text.
+	•	Annotator guidelines: prepare a short doc of examples/counter-examples for each label.
+
+⸻
+
+By following this guide, you’ll have a clean, Prodigy-ready corpus that powers efficient NER and span workflows for extracting LLM model names and their attributes.

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Source - {{ source.name }}</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('api.index') }}">
+                <i class="bi bi-code-square me-2"></i>Web Scraper
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.index') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.configuration') }}">Configurations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('sources.index') }}">Sources</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('sources.index') }}">Sources</a></li>
+                        <li class="breadcrumb-item active">Edit Source</li>
+                    </ol>
+                </nav>
+                <h1 class="fs-2">Edit Source</h1>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card bg-dark">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Source Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="{{ url_for('sources.edit_source', source_id=source.id) }}">
+                            <div class="mb-3">
+                                <label for="url" class="form-label">URL <span class="text-danger">*</span></label>
+                                <input type="url" class="form-control" id="url" name="url" value="{{ source.url }}" required>
+                                <div class="form-text">Full URL of the source to scrape. Include https:// prefix.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Display Name</label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ source.name }}">
+                                <div class="form-text">Optional friendly name for this source. If not provided, the URL will be used.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="2">{{ source.description or '' }}</textarea>
+                                <div class="form-text">Optional notes about this source.</div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="category" class="form-label">Category</label>
+                                    <input type="text" class="form-control" id="category" name="category" list="category-options" value="{{ source.category or '' }}">
+                                    <datalist id="category-options">
+                                        <option value="research">
+                                        <option value="blog">
+                                        <option value="news">
+                                        <option value="documentation">
+                                        <option value="forum">
+                                    </datalist>
+                                    <div class="form-text">Optional category for grouping</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="priority" class="form-label">Priority</label>
+                                    <input type="number" class="form-control" id="priority" name="priority" min="0" max="100" value="{{ source.priority }}">
+                                    <div class="form-text">Higher value = higher priority (0-100)</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if source.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">Active</label>
+                                <div class="form-text">If checked, this source will be available for scraping.</div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label">Source Lists</label>
+                                <div class="card bg-secondary">
+                                    <div class="card-body">
+                                        {% if source_lists %}
+                                            {% for list in source_lists %}
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="source_lists" value="{{ list.id }}" id="list-{{ list.id }}" 
+                                                        {% if list in source.source_lists %}checked{% endif %}>
+                                                    <label class="form-check-label" for="list-{{ list.id }}">
+                                                        {{ list.name }}
+                                                    </label>
+                                                </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <p class="text-muted mb-0">No source lists available. <a href="{{ url_for('sources.new_source_list') }}" class="text-white">Create a list</a> first.</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ url_for('sources.index') }}" class="btn btn-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-lg me-2"></i>Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-dark mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Source Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6>Source Details</h6>
+                            <ul>
+                                <li><strong>Created:</strong> {{ source.created_at.strftime('%Y-%m-%d') }}</li>
+                                <li><strong>Last updated:</strong> {{ source.updated_at.strftime('%Y-%m-%d') }}</li>
+                                <li><strong>In lists:</strong> {{ source.source_lists|length }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card bg-dark">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Preview</h5>
+                        <a href="{{ source.url }}" target="_blank" class="btn btn-sm btn-outline-light">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <a href="{{ source.url }}" target="_blank" class="text-decoration-none">
+                                <h6>{{ source.name }}</h6>
+                                <small class="text-truncate d-block text-muted">{{ source.url }}</small>
+                            </a>
+                        </div>
+                        
+                        {% if source.description %}
+                            <p class="small text-muted">{{ source.description }}</p>
+                        {% endif %}
+                        
+                        <div class="d-flex gap-2">
+                            {% if source.category %}
+                                <span class="badge bg-info">{{ source.category }}</span>
+                            {% endif %}
+                            {% if source.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                            {% if source.priority > 0 %}
+                                <span class="badge bg-warning">Priority {{ source.priority }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

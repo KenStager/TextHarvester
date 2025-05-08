@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Source: {{ source.name }}</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('api.index') }}">
+                <i class="bi bi-code-square me-2"></i>Web Scraper
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.index') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.configuration') }}">Configurations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('sources.index') }}">Sources</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('api.index') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('sources.index') }}">Sources</a></li>
+            <li class="breadcrumb-item active">Test Source</li>
+        </ol>
+    </nav>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4>Source Test Results: {{ source.name }}</h4>
+                    <div>
+                        <a href="{{ url_for('sources.edit_source', source_id=source.id) }}" class="btn btn-sm btn-outline-secondary">Edit Source</a>
+                        <a href="{{ url_for('sources.index') }}" class="btn btn-sm btn-outline-primary">Back to Sources</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="mb-3">Source Information</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <th style="width: 150px;">URL</th>
+                                        <td>
+                                            <a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ source.url }}</a>
+                                            <a href="{{ source.url }}" target="_blank" class="btn btn-sm btn-outline-secondary ms-2">
+                                                <i class="bi bi-box-arrow-up-right"></i> Open
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Name</th>
+                                        <td>{{ source.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Category</th>
+                                        <td>{{ source.category or 'Not specified' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Status</th>
+                                        <td>
+                                            {% if source.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="mb-3">Test Results <small class="text-muted">({{ results.timestamp }})</small></h5>
+                            
+                            <div class="alert {% if results.success %}alert-success{% else %}alert-danger{% endif %} mb-4">
+                                <div class="d-flex align-items-center">
+                                    {% if results.success %}
+                                    <i class="bi bi-check-circle-fill me-2 fs-4"></i>
+                                    <div>
+                                        <strong>Success!</strong> Source was successfully fetched and content extracted.
+                                        <div>Status code: {{ results.status_code }} | Response time: {{ results.response_time }}ms | Extracted text length: {{ results.extracted_text_length }} characters</div>
+                                    </div>
+                                    {% else %}
+                                    <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+                                    <div>
+                                        <strong>Error!</strong> Failed to fetch source content.
+                                        <div>{{ results.error }}</div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if results.recommendations %}
+                            <div class="card mb-4 bg-info bg-opacity-10">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Recommendations</h6>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="mb-0">
+                                        {% for recommendation in results.recommendations %}
+                                        <li>{{ recommendation }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Response Details</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-bordered">
+                                                    <tr>
+                                                        <th>Status Code</th>
+                                                        <td>{{ results.status_code or 'N/A' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Response Time</th>
+                                                        <td>{{ results.response_time }}ms</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Content Stats</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-bordered">
+                                                    <tr>
+                                                        <th>Content Extracted</th>
+                                                        <td>{{ 'Yes' if results.extracted_text_preview else 'No' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Text Length</th>
+                                                        <td>{{ results.extracted_text_length }} characters</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if results.extracted_text_preview %}
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Extracted Text Preview</h6>
+                                </div>
+                                <div class="card-body">
+                                    <pre class="bg-dark text-light p-3 rounded" style="white-space: pre-wrap;">{{ results.extracted_text_preview }}</pre>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if results.headers %}
+                            <div class="card mb-4">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Response Headers</h6>
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#headersCollapse">
+                                        Show/Hide
+                                    </button>
+                                </div>
+                                <div class="collapse" id="headersCollapse">
+                                    <div class="card-body">
+                                        <pre class="bg-dark text-light p-3 rounded" style="white-space: pre-wrap;">{% for key, value in results.headers.items() %}{{ key }}: {{ value }}
+{% endfor %}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if results.content_preview %}
+                            <div class="card mb-4">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Raw HTML Preview</h6>
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#htmlCollapse">
+                                        Show/Hide
+                                    </button>
+                                </div>
+                                <div class="collapse" id="htmlCollapse">
+                                    <div class="card-body">
+                                        <pre class="bg-dark text-light p-3 rounded" style="white-space: pre-wrap;">{{ results.content_preview }}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('sources.test_source', source_id=source.id) }}" class="btn btn-primary">Test Again</a>
+                        <a href="{{ url_for('sources.index') }}" class="btn btn-outline-secondary">Back to Sources</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        });
+    </script>
+</body>
+</html>

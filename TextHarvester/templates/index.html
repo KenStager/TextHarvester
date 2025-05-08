@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Scraper Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">Web Scraper</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/config">New Configuration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('sources.index') }}">Sources</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary bg-opacity-25">
+                        <h2 class="card-title">Web Scraper Dashboard</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="lead">Web scraper for collecting text data from any domain to build structured datasets for training and analysis.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">
+                        <h4>Statistics</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-3">
+                            <div class="text-start">Total Jobs:</div>
+                            <div class="text-end fw-bold">{{ stats.total_jobs }}</div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <div class="text-start">Active Jobs:</div>
+                            <div class="text-end fw-bold">{{ stats.active_jobs }}</div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <div class="text-start">Total Content Scraped:</div>
+                            <div class="text-end fw-bold">{{ stats.total_scraped }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8 mb-3">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4>Start New Job</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if configurations %}
+                        <form action="/jobs/start" method="post">
+                            <div class="mb-3">
+                                <label for="config_id" class="form-label">Select Configuration</label>
+                                <select class="form-select" id="config_id" name="config_id" required>
+                                    <option value="">-- Select a configuration --</option>
+                                    {% for config in configurations %}
+                                    <option value="{{ config.id }}">{{ config.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Start Scraping Job</button>
+                            <a href="/config" class="btn btn-outline-secondary">Create New Configuration</a>
+                        </form>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <p>No configurations found. Create a configuration first to start scraping.</p>
+                            <a href="/config" class="btn btn-primary mt-2">Create Configuration</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4>Recent Jobs</h4>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_jobs %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Status</th>
+                                        <th>Configuration</th>
+                                        <th>URLs Processed</th>
+                                        <th>Created</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for job in recent_jobs %}
+                                    <tr>
+                                        <td>{{ job.id }}</td>
+                                        <td>
+                                            {% if job.status.value == 'pending' %}
+                                            <span class="badge bg-secondary">Pending</span>
+                                            {% elif job.status.value == 'running' %}
+                                            <span class="badge bg-primary">Running</span>
+                                            {% elif job.status.value == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                            {% elif job.status.value == 'failed' %}
+                                            <span class="badge bg-danger">Failed</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ job.configuration.name }}</td>
+                                        <td>{{ job.urls_processed }}</td>
+                                        <td>{{ job.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="/status/{{ job.id }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteJobModal-{{ job.id }}">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Delete Confirmation Modal -->
+                                            <div class="modal fade" id="deleteJobModal-{{ job.id }}" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Confirm Job Deletion</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <p>Are you sure you want to delete Job #{{ job.id }}?</p>
+                                                            <div class="alert alert-warning">
+                                                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                                                <strong>Warning:</strong> This will permanently delete the job and all associated content. This action cannot be undone.
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <form action="{{ url_for('api.delete_job', job_id=job.id) }}" method="post">
+                                                                <button type="submit" class="btn btn-danger">Delete Job</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">No jobs have been created yet.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4>Available Configurations</h4>
+                        <a href="/config" class="btn btn-sm btn-primary">New Configuration</a>
+                    </div>
+                    <div class="card-body">
+                        {% if configurations %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>URLs</th>
+                                        <th>Depth</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for config in configurations %}
+                                    <tr>
+                                        <td>{{ config.name }}</td>
+                                        <td>{{ config.description or 'No description' }}</td>
+                                        <td>{{ config.base_urls|length }} URL(s)</td>
+                                        <td>{{ config.max_depth }}</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="/config?id={{ config.id }}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfigModal-{{ config.id }}">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Delete Confirmation Modal -->
+                                            <div class="modal fade" id="deleteConfigModal-{{ config.id }}" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Confirm Configuration Deletion</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <p>Are you sure you want to delete the configuration <strong>{{ config.name }}</strong>?</p>
+                                                            <div class="alert alert-warning">
+                                                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                                                <strong>Warning:</strong> If this configuration is used by any jobs, you'll need to delete those jobs first.
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <form action="{{ url_for('api.delete_configuration', config_id=config.id) }}" method="post">
+                                                                <button type="submit" class="btn btn-danger">Delete Configuration</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">No configurations have been created yet.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer mt-5 py-3 bg-dark">
+        <div class="container text-center">
+            <span class="text-muted">Web Scraper for Structured Data Collection</span>
+        </div>
+    </footer>
+</body>
+</html>

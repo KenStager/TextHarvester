@@ -1,0 +1,64 @@
+[package]
+name = "rust_extractor"
+version = "0.1.0"
+edition = "2021"
+description = "Fast content extraction engine for web pages"
+authors = ["Your Name <your.email@example.com>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# HTTP server framework
+actix-web = "4.4.0"
+actix-cors = "0.6.4"
+
+# HTML parsing
+html5ever = "0.26.0"
+markup5ever_rcdom = "0.2.0"
+scraper = "0.17.1"  # Higher-level HTML parsing built on html5ever
+select = "0.6.0"    # CSS selector-based scraping
+
+# Text processing
+regex = "1.9.3"
+unicode-segmentation = "1.10.1"
+unicode-normalization = "0.1.22"
+
+# URL handling and validation
+url = "2.4.1"
+
+# HTTP Client
+reqwest = { version = "0.11.18", features = ["blocking"] }
+
+# Concurrency
+rayon = "1.7.0"
+tokio = { version = "1.32.0", features = ["full"] }
+futures = "0.3.28"
+
+# Serialization/Deserialization
+serde = { version = "1.0.183", features = ["derive"] }
+serde_json = "1.0.105"
+
+# Logging and error handling
+log = "0.4.20"
+env_logger = "0.10.0"
+thiserror = "1.0.47"
+anyhow = "1.0.75"
+
+# CLI argument parsing
+clap = { version = "4.3.21", features = ["derive"] }
+
+# Performance measurement
+criterion = "0.5.1"
+
+# Time handling
+chrono = { version = "0.4.26", features = ["serde"] }
+
+# Database
+tokio-postgres = "0.7.8"
+
+# Utilities
+lazy_static = "1.4.0"
+
+[dev-dependencies]
+criterion = "0.5.1"
+mockito = "1.1.0"

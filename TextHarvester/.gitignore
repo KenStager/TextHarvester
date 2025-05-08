@@ -1,0 +1,123 @@
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.env
+.venv
+env.bak/
+venv.bak/
+prodigy_env/
+*conda_env/
+
+# Data, exports, and logs
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+exports/*
+logs/*
+!exports/.gitkeep
+!logs/.gitkeep
+!data/.gitkeep
+*.jsonl
+*.csv
+*.tsv
+*.xlsx
+
+# Rust compilation artifacts
+rust_extractor/target/
+rust_extractor/Cargo.lock
+**/*.rs.bk
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+.vs/
+*.sublime-workspace
+*.sublime-project
+
+# Local configuration
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+config.local.json
+settings.local.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+
+# Large media files
+*.pdf
+*.zip
+*.rar
+*.tar.gz
+*.mp3
+*.mp4
+*.avi
+*.mov
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.old
+
+# Content cache from scraping
+content_cache/
+html_cache/
+
+# Generated documentation
+docs/_build/
+site/
+
+# Exclude intelligence outputs
+processed_content_*/
+*_analysis.png
+knowledge_graph.html
+*/generated_content/
+
+# Keep certain directories but not their contents
+!data/.gitkeep
+!exports/.gitkeep
+!logs/.gitkeep
+!content_cache/.gitkeep
+!html_cache/.gitkeep
+!tmp/.gitkeep

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ source_list.name }} - Source List</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('api.index') }}">
+                <i class="bi bi-code-square me-2"></i>Web Scraper
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.index') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.configuration') }}">Configurations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('sources.index') }}">Sources</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('sources.index') }}">Sources</a></li>
+                        <li class="breadcrumb-item active">{{ source_list.name }}</li>
+                    </ol>
+                </nav>
+                <h1 class="fs-2">{{ source_list.name }}</h1>
+                {% if source_list.description %}
+                    <p class="text-muted">{{ source_list.description }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <a href="{{ url_for('sources.test_source_list', list_id=source_list.id) }}" class="btn btn-info">
+                    <i class="bi bi-check2-circle me-2"></i>Test All Sources
+                </a>
+                <a href="{{ url_for('sources.add_source_to_list', list_id=source_list.id) }}" class="btn btn-primary ms-2">
+                    <i class="bi bi-plus-lg me-2"></i>Add Sources
+                </a>
+                <a href="{{ url_for('sources.edit_source_list', list_id=source_list.id) }}" class="btn btn-secondary ms-2">
+                    <i class="bi bi-pencil me-2"></i>Edit List
+                </a>
+                <button type="button" class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#deleteListModal">
+                    <i class="bi bi-trash me-2"></i>Delete List
+                </button>
+            </div>
+        </div>
+
+        <div class="card bg-dark mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Sources in this List</h5>
+                <span class="badge bg-secondary">{{ source_list.sources|length }}</span>
+            </div>
+            <div class="card-body">
+                {% if source_list.sources %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Source</th>
+                                    <th>URL</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th width="120">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for source in source_list.sources %}
+                                    <tr>
+                                        <td>{{ source.name }}</td>
+                                        <td>
+                                            <a href="{{ source.url }}" target="_blank" class="text-truncate d-inline-block" style="max-width: 200px;" data-bs-toggle="tooltip" title="{{ source.url }}">
+                                                {{ source.url }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            {% if source.category %}
+                                                <span class="badge bg-info">{{ source.category }}</span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if source.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('sources.test_source', source_id=source.id) }}" class="btn btn-info" data-bs-toggle="tooltip" title="Test source">
+                                                    <i class="bi bi-check2-circle"></i>
+                                                </a>
+                                                <a href="{{ url_for('sources.edit_source', source_id=source.id) }}" class="btn btn-primary" data-bs-toggle="tooltip" title="Edit source">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#removeSourceModal-{{ source.id }}" title="Remove from list">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Remove From List Confirmation Modal -->
+                                            <div class="modal fade" id="removeSourceModal-{{ source.id }}" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content bg-dark">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Confirm Removal</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <p>Are you sure you want to remove <strong>{{ source.name }}</strong> from this list?</p>
+                                                            <p class="text-muted">This will only remove the source from this list, not delete it entirely.</p>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <form action="{{ url_for('sources.remove_source_from_list', list_id=source_list.id, source_id=source.id) }}" method="post">
+                                                                <button type="submit" class="btn btn-warning">Remove</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        No sources in this list yet. <a href="{{ url_for('sources.add_source_to_list', list_id=source_list.id) }}">Add sources</a> to get started.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card bg-dark">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Use This Source List</h5>
+            </div>
+            <div class="card-body">
+                <p>To use this source list in a scraping configuration, copy these URLs:</p>
+                <div class="mb-3">
+                    <textarea class="form-control font-monospace" rows="5" readonly>{% for source in source_list.sources %}{{ source.url }}
+{% endfor %}</textarea>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <button class="btn btn-primary" onclick="copyToClipboard()">
+                            <i class="bi bi-clipboard me-2"></i>Copy to Clipboard
+                        </button>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('api.configuration') }}?preset={{ source_list.slug }}" class="btn btn-success">
+                            <i class="bi bi-gear me-2"></i>Create Configuration
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete List Confirmation Modal -->
+    <div class="modal fade" id="deleteListModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the source list <strong>{{ source_list.name }}</strong>?</p>
+                    <p class="text-danger">This will remove the list, but not delete the individual sources.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form action="{{ url_for('sources.delete_source_list', list_id=source_list.id) }}" method="post">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+        
+        // Copy to clipboard function
+        function copyToClipboard() {
+            const textarea = document.querySelector('textarea');
+            textarea.select();
+            document.execCommand('copy');
+            
+            // Show temporary feedback
+            const btn = document.querySelector('.btn-primary');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check-lg me-2"></i>Copied!';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-success');
+            
+            setTimeout(function() {
+                btn.innerHTML = originalText;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-primary');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

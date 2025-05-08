@@ -1,0 +1,65 @@
+Below is a reference sheet with the exact, scrape-ready URLs for every source in your monitoring stack.  They’re grouped by type so you can wire each category into the appropriate crawler or RSS-poller.
+
+⸻
+
+Official Company Channels
+
+Source	URL
+OpenAI Blog	https://openai.com/blog  ￼
+Anthropic Newsroom	https://www.anthropic.com/news  ￼
+Google AI - Latest News	https://ai.google/latest-news/  ￼
+DeepMind Blog	https://deepmind.google/discover/blog/  ￼
+Meta AI Blog	https://ai.meta.com/blog  ￼
+Microsoft AI Blog	https://www.microsoft.com/en-us/ai/blog/  ￼
+
+
+
+⸻
+
+Community Hubs & Repositories
+
+Source	URL
+Hugging Face Blog	https://huggingface.co/blog  ￼
+Hugging Face Model Hub	https://huggingface.co/models  ￼
+Hugging Face Spaces (live demos)	https://huggingface.co/spaces  ￼
+Hugging Face Forums	https://discuss.huggingface.co/  ￼
+GitHub Trending (all languages)	https://github.com/trending  ￼
+Open-LLM Leaderboard (HF Space)	https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard  ￼
+
+
+
+⸻
+
+Forums & Subreddits
+
+Source	URL
+r/MachineLearning	https://www.reddit.com/r/MachineLearning/  ￼
+r/LocalLLaMA	https://www.reddit.com/r/LocalLLaMA/  ￼
+
+
+
+⸻
+
+Tech-News & Aggregators
+
+Source	URL
+TechCrunch – AI Tag	https://techcrunch.com/tag/artificial-intelligence/  ￼
+VentureBeat – AI Section	https://venturebeat.com/category/ai/  ￼
+IEEE Spectrum – AI Topic	https://spectrum.ieee.org/topic/artificial-intelligence/  ￼
+Synced Review	https://syncedreview.com/  [oai_citation:17‡Synced
+Papers With Code	https://paperswithcode.com/  ￼
+
+
+
+⸻
+
+Curated Newsletters (HTML archives)
+
+Source	URL
+Import AI (Jack Clark)	https://importai.substack.com/  ￼
+The Sequence	https://thesequence.substack.com/  ￼
+The Rundown AI	https://www.therundown.ai/  ￼
+
+Note on MIT Technology Review: their AI topic page (https://www.technologyreview.com/topic/artificial-intelligence/) blocks most automated requests; if you need that outlet, plan on proxying through an RSS service or paid API rather than raw scraping.
+
+With these URLs in place you can configure your crawlers or RSS fetchers for daily or weekly polling and be confident you’re hitting the primary release points, the fastest community amplifiers, and the most reliable news round-ups for AI and LLM developments.

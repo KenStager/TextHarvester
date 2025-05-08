@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Predefined Sources - Web Scraper</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('api.index') }}">
+                <i class="bi bi-code-square me-2"></i>Web Scraper
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.index') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('api.configuration') }}">Configurations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('sources.index') }}">Sources</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ url_for('sources.index') }}">Sources</a></li>
+                        <li class="breadcrumb-item active">Import Predefined Sources</li>
+                    </ol>
+                </nav>
+                <h1 class="fs-2">Import Predefined Sources</h1>
+                <p class="text-muted">Choose from curated lists of AI research and model-related sources</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card bg-dark">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Available Source Lists</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" action="{{ url_for('sources.import_predefined_sources') }}">
+                            <div class="mb-4">
+                                <label for="predefined_list" class="form-label">Select a Predefined List</label>
+                                
+                                {% for list_id, list_info in predefined_sources.items() %}
+                                    <div class="card bg-secondary mb-3">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="predefined_list" id="{{ list_id }}" value="{{ list_id }}" {% if loop.first %}checked{% endif %}>
+                                                <label class="form-check-label" for="{{ list_id }}">
+                                                    <h6 class="mb-1">{{ list_info.name }}</h6>
+                                                    <p class="mb-2 text-muted small">{{ list_info.description }}</p>
+                                                    <span class="badge bg-primary">{{ list_info.sources|length }} sources</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="card-footer bg-dark small" id="preview-{{ list_id }}" style="display: none;">
+                                            <p class="mb-2">Source URLs in this list:</p>
+                                            <ul class="mb-0 text-muted">
+                                                {% for url in list_info.sources[:5] %}
+                                                    <li>{{ url }}</li>
+                                                {% endfor %}
+                                                {% if list_info.sources|length > 5 %}
+                                                    <li class="text-muted">... and {{ list_info.sources|length - 5 }} more</li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="{{ url_for('sources.index') }}" class="btn btn-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-cloud-download me-2"></i>Import Selected List
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-dark">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Import Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <h6>How Importing Works</h6>
+                            <p>When you import a predefined list:</p>
+                            <ul>
+                                <li>A new source list will be created with the same name</li>
+                                <li>All URLs from the predefined list will be added</li>
+                                <li>If a source already exists, it will be added to the list without duplication</li>
+                                <li>You can edit or remove sources after import</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6>Customize for Your Domain</h6>
+                            <p>You can use these predefined lists as a starting point or create your own for any domain:</p>
+                            <ul>
+                                <li>Research publications and academic sources</li>
+                                <li>Industry news and company blogs</li>
+                                <li>Technical documentation and forums</li>
+                                <li>Domain-specific news and announcements</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle preview when radio button is selected
+        document.querySelectorAll('input[name="predefined_list"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Hide all previews
+                document.querySelectorAll('[id^="preview-"]').forEach(preview => {
+                    preview.style.display = 'none';
+                });
+                
+                // Show selected preview
+                const previewId = 'preview-' + this.value;
+                document.getElementById(previewId).style.display = 'block';
+            });
+        });
+        
+        // Show preview for initially selected option
+        const initiallySelected = document.querySelector('input[name="predefined_list"]:checked');
+        if (initiallySelected) {
+            const previewId = 'preview-' + initiallySelected.value;
+            document.getElementById(previewId).style.display = 'block';
+        }
+    </script>
+</body>
+</html>

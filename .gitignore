@@ -1,0 +1,103 @@
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories and files
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+.vs/
+*~
+*.swp
+*.swo
+
+# Environment and configuration
+.env
+.env.local
+*.local.json
+config.local.yaml
+settings.local.ini
+
+# Python environments
+.venv/
+venv/
+ENV/
+env/
+prodigy_env/
+*conda_env/
+.Python
+
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Dependency directories
+.pytest_cache/
+.tox/
+__pycache__/
+
+# Logs and databases (parent level)
+/logs/
+*.log
+*.sqlite
+*.db
+*.sqlite3
+
+# Compiled files
+*.py[cod]
+*.class
+*.dll
+*.so
+*.egg
+*.jar
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Generated content
+/processed_content*/
+/generated_content/
+/knowledge_graphs/
+/analysis_output/
+
+# Temporary files
+/tmp/
+/temp/
+*.tmp
+*~
+
+# Large data files
+*.csv
+*.xlsx
+*.jsonl
+*.parquet
+*.feather
+*.arrow
+*.h5
+*.pkl
+
+# Exclude batch files but keep examples
+*.bat
+!start_rust_extractor.bat
+!start_textharvester.bat
+
+# AI model files
+*.onnx
+*.pt
+*.pth
+*.h5
+*.joblib
+*.model
+
+# Keep certain directories with .gitkeep
+!logs/.gitkeep
+!tmp/.gitkeep
