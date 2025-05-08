@@ -2,8 +2,9 @@ use chrono::Utc;
 use log::{info, error, debug};
 use serde::{Serialize, Deserialize};
 use std::error::Error;
-use tokio_postgres::{Config, NoTls, Row};
+use tokio_postgres::{Config, NoTls, Row, Client};
 use futures::stream::TryStreamExt;
+use actix_web::web;
 
 use crate::models::DatabaseConfig;
 use crate::utils::text::clean_text;
@@ -33,6 +34,25 @@ impl Default for ExportOptions {
             overlap: default_overlap(),
         }
     }
+}
+
+/// State for streaming database results
+struct StreamState {
+    // Database connection info
+    db_url: String,
+    job_id: i32,
+    client: Option<Client>,
+    
+    // Batch processing state
+    offset: i64,
+    batch_size: i64,
+    
+    // Content processing options
+    chunk_size: usize,
+    overlap: usize,
+    
+    // Stream control
+    done: bool,
 }
 
 /// Job exporter for converting scraped content to JSONL
@@ -193,16 +213,142 @@ impl JobExporter {
         Ok(json_str)
     }
     
-    /// Stream job content in chunks suitable for NER/SpanCat annotation
-    pub async fn stream_chunks(
-        &self,
-        job_id: i32,
-        options: &ExportOptions,
-    ) -> Result<Box<dyn futures::Stream<Item = Result<String, Box<dyn Error + Send + Sync>>> + Unpin>, Box<dyn Error>> {
-        // Implementation for streaming would go here
-        // This is a placeholder until we implement proper streaming
+    /// Creates a stream of JSONL records from job content
+    pub fn export_job_stream(&self, job_id: i32, options: &ExportOptions) -> impl futures::Stream<Item = Result<web::Bytes, actix_web::Error>> {
+        // Create configuration
+        let db_url = self.db_config.url.clone();
+        let chunk_size = options.chunk_size;
+        let overlap = options.overlap;
         
-        // Create an error with specific Box type
-        Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Streaming not implemented yet")))
+        // Setup our stream of database results
+        futures::stream::try_unfold(
+            // State: database connection, current offset, and batch size
+            StreamState {
+                db_url,
+                job_id,
+                client: None,
+                offset: 0,
+                batch_size: 50,  // Process in batches of 50 records
+                chunk_size,
+                overlap,
+                done: false,
+            },
+            move |mut state| async move {
+                // If we're done, return None to end the stream
+                if state.done {
+                    return Ok(None);
+                }
+                
+                // Open database connection if this is the first batch
+                if state.offset == 0 {
+                    debug!("Opening database connection for streaming export");
+                    let config = state.db_url.parse::<Config>()?;
+                    let (client, connection) = config.connect(NoTls).await?;
+                    
+                    // Spawn the connection task in the background
+                    tokio::spawn(async move {
+                        if let Err(e) = connection.await {
+                            error!("Database connection error during streaming: {}", e);
+                        }
+                    });
+                    
+                    // Store the client in the state
+                    state.client = Some(client);
+                }
+                
+                // Get the client from state
+                let client = state.client.as_ref().expect("Database client not initialized");
+                
+                // Fetch a batch of records
+                let query = format!(
+                    "SELECT sc.id, sc.url, sc.title, sc.extracted_text, sc.crawl_depth, sc.processing_time, sc.created_at,
+                     cm.word_count, cm.char_count, cm.language, c.name as config_name
+                     FROM scraped_content sc
+                     LEFT JOIN content_metadata cm ON sc.id = cm.content_id
+                     LEFT JOIN scraping_job sj ON sc.job_id = sj.id
+                     LEFT JOIN scraping_configuration c ON sj.configuration_id = c.id
+                     WHERE sc.job_id = $1
+                     ORDER BY sc.id ASC
+                     LIMIT $2 OFFSET $3"
+                );
+                
+                let rows = client.query(
+                    &query,
+                    &[&state.job_id, &state.batch_size, &state.offset]
+                ).await?;
+                
+                // Check if we're done
+                if rows.is_empty() {
+                    info!("No more content to stream for job {}", state.job_id);
+                    state.done = true;
+                    return Ok(Some((web::Bytes::new(), state)));
+                }
+                
+                // Process records into JSONL
+                let mut batch_content = String::new();
+                
+                for row in &rows {
+                    let id: i32 = row.get(0);
+                    let url: String = row.get(1);
+                    let title: Option<String> = row.get(2);
+                    let text: String = row.get(3);
+                    let depth: i32 = row.get(4);
+                    let processing_time: Option<i32> = row.get(5);
+                    
+                    // Get the timestamp as a string and parse it
+                    let created_at_str: String = row.get(6);
+                    let created_at = chrono::DateTime::parse_from_rfc3339(&created_at_str)
+                        .unwrap_or_else(|_| chrono::Utc::now().into());
+                    
+                    let word_count: Option<i32> = row.get(7);
+                    let char_count: Option<i32> = row.get(8);
+                    let language: Option<String> = row.get(9);
+                    let config_name: Option<String> = row.get(10);
+                    
+                    // Split text into chunks if needed
+                    let chunks = crate::utils::text::split_into_chunks(&text, state.chunk_size, state.overlap);
+                    let chunk_count = chunks.len();
+                    
+                    // Create a record for each chunk
+                    for (i, chunk) in chunks.into_iter().enumerate() {
+                        // Create metadata to match Python export format
+                        let metadata = serde_json::json!({
+                            "source": "web_scrape",
+                            "url": url,
+                            "title": title.clone().unwrap_or_else(|| "Untitled".to_string()),
+                            "date": created_at.to_rfc3339(),
+                            "job_id": state.job_id,
+                            "content_id": id,
+                            "config_name": config_name.clone().unwrap_or_else(|| "Unknown".to_string()),
+                            "crawl_depth": depth,
+                            "chunk_index": i,
+                            "chunk_total": chunk_count,
+                            "language": language.clone(),
+                            "word_count": word_count
+                        });
+                        
+                        // Create record
+                        let record = serde_json::json!({
+                            "text": chunk,
+                            "meta": metadata
+                        });
+                        
+                        // Add to batch content
+                        batch_content.push_str(&serde_json::to_string(&record)?);
+                        batch_content.push('\n');
+                    }
+                }
+                
+                // Update state for next batch
+                state.offset += state.batch_size;
+                
+                // Convert batch content to bytes
+                let bytes = web::Bytes::from(batch_content);
+                
+                // Return batch and updated state
+                Ok(Some((bytes, state)))
+            }
+        )
+        .map_err(|e| Box::new(e) as Box<dyn Error + Send + Sync>)
     }
 }

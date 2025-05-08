@@ -120,15 +120,10 @@ pub async fn stream_export(
         overlap,
     };
     
-    // Prepare streaming response
-    // Normally we would use a streaming response here, but for simplicity
-    // we'll just return a JSON response with the status
-    HttpResponse::Ok().json(serde_json::json!({
-        "success": true,
-        "job_id": job_id,
-        "message": format!("Streaming export started for job {}", job_id),
-        "timestamp": Utc::now().to_rfc3339(),
-    }))
+    // Create a streaming response with chunked transfer encoding
+    HttpResponse::Ok()
+        .content_type("application/x-jsonl")  // Use JSONL content type
+        .streaming(exporter.export_job_stream(job_id, &options))
 }
 
 /// Configure API routes

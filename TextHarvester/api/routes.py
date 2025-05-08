@@ -600,17 +600,27 @@ def stop_job(job_id):
 @api_bp.route('/jobs/export/<int:job_id>', methods=['GET', 'POST'])
 def export_job(job_id):
     """Export job data to JSONL format for NER/SpanCat annotation"""
-    # Check if Rust export is available, otherwise use Python
-    try:
-        from scraper.rust_export import export_job_to_jsonl_with_rust, generate_rust_export_records
-        export_func = export_job_to_jsonl_with_rust
-        generate_records = generate_rust_export_records
-        logger.info(f"Using Rust-based export for job {job_id}")
-    except ImportError:
+    # Check if Python extraction is explicitly enabled via environment variable
+    use_python_extraction = os.environ.get("USE_PYTHON_EXTRACTION", "0") == "1"
+    
+    if use_python_extraction:
+        # Use Python-based export as configured
         from scraper.export import export_job_to_jsonl, generate_jsonl_records
         export_func = export_job_to_jsonl
         generate_records = generate_jsonl_records
-        logger.info(f"Using Python-based export for job {job_id}")
+        logger.info(f"Using Python-based export for job {job_id} (as configured by environment)")
+    else:
+        # Check if Rust export is available, otherwise use Python
+        try:
+            from scraper.rust_export import export_job_to_jsonl_with_rust, generate_rust_export_records
+            export_func = export_job_to_jsonl_with_rust
+            generate_records = generate_rust_export_records
+            logger.info(f"Using Rust-based export for job {job_id}")
+        except ImportError:
+            from scraper.export import export_job_to_jsonl, generate_jsonl_records
+            export_func = export_job_to_jsonl
+            generate_records = generate_jsonl_records
+            logger.info(f"Using Python-based export for job {job_id} (Rust import failed)")
     import os
     from flask import send_file, Response, stream_with_context
     import json

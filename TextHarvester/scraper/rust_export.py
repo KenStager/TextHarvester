@@ -49,6 +49,12 @@ def export_job_to_jsonl_with_rust(
     logger.info(f"Starting Rust-based export for job {job_id} to {output_path}")
     
     try:
+        # Check if we're configured to use Python extraction
+        if os.environ.get("USE_PYTHON_EXTRACTION", "0") == "1":
+            logger.info(f"Using Python extraction due to environment setting")
+            from scraper.export import export_job_to_jsonl
+            return export_job_to_jsonl(job_id, output_path, max_chunk_size, overlap)
+            
         # First validate job and get content count
         url = f"{_get_rust_extractor_url()}/api/export/job"
         payload = {
@@ -77,25 +83,56 @@ def export_job_to_jsonl_with_rust(
             "overlap": overlap
         }
         
-        # Since streaming isn't fully implemented, we'll use a simpler approach
-        # In the future, we'd use streaming to process large datasets more efficiently
-        with open(output_path, "w", encoding="utf-8") as output_file:
+        with open(output_path, "wb") as output_file:
             stream_response = requests.get(stream_url, params=params, stream=True)
             stream_response.raise_for_status()
             
             chunk_count = 0
+            bytes_written = 0
+            
             for chunk in stream_response.iter_content(chunk_size=8192):
                 if chunk:
-                    output_file.write(chunk.decode("utf-8"))
+                    output_file.write(chunk)
+                    bytes_written += len(chunk)
                     chunk_count += 1
                     
-            logger.info(f"Wrote {chunk_count} chunks to {output_path}")
+            logger.info(f"Export complete: wrote {bytes_written} bytes in {chunk_count} chunks to {output_path}")
             
-        return content_count, chunk_count
+            # Validate that we actually received content, not just a status message
+            if bytes_written == 0:
+                logger.warning(f"Rust export produced an empty file, falling back to Python export")
+                from scraper.export import export_job_to_jsonl
+                return export_job_to_jsonl(job_id, output_path, max_chunk_size, overlap)
+                
+            # Check if the file contains actual content or just a status message
+            output_file.flush()
+        
+        # Check if the file contains only a status message
+        with open(output_path, 'r', encoding='utf-8') as check_file:
+            first_line = check_file.readline().strip()
+            if first_line and ("success" in first_line and "job_id" in first_line and "message" in first_line):
+                logger.warning(f"Rust export returned a status message instead of content, falling back to Python export")
+                from scraper.export import export_job_to_jsonl
+                return export_job_to_jsonl(job_id, output_path, max_chunk_size, overlap)
+                
+            # Count the number of lines in the file to estimate chunk count
+            check_file.seek(0)
+            jsonl_chunks = sum(1 for _ in check_file)
+            
+            logger.info(f"Verified export: {jsonl_chunks} JSONL records")
+            
+        return content_count, jsonl_chunks
         
     except Exception as e:
         logger.exception(f"Error in Rust-based export: {str(e)}")
-        raise
+        # Fall back to Python export
+        logger.info(f"Falling back to Python-based export due to error")
+        try:
+            from scraper.export import export_job_to_jsonl
+            return export_job_to_jsonl(job_id, output_path, max_chunk_size, overlap)
+        except Exception as fallback_error:
+            logger.exception(f"Error in Python fallback export: {str(fallback_error)}")
+            raise
 
 def generate_rust_export_records(
     job_id: int,
@@ -117,6 +154,13 @@ def generate_rust_export_records(
     logger.info(f"Starting Rust-based export generator for job {job_id}")
     
     try:
+        # Check environment variable - respect USE_PYTHON_EXTRACTION if set
+        if os.environ.get("USE_PYTHON_EXTRACTION", "0") == "1":
+            logger.info(f"Python extraction enabled via environment, bypassing Rust export for job {job_id}")
+            from scraper.export import generate_jsonl_records
+            yield from generate_jsonl_records(job_id, max_chunk_size, overlap)
+            return
+            
         # Create a temporary file to store the export
         with tempfile.NamedTemporaryFile(suffix='.jsonl', delete=False) as temp_file:
             temp_path = temp_file.name
@@ -124,8 +168,27 @@ def generate_rust_export_records(
         # Export to the temporary file
         export_job_to_jsonl_with_rust(job_id, temp_path, max_chunk_size, overlap)
         
-        # Read the file line by line to yield records
+        # Check if the file is empty or just contains a JSON status message
+        file_size = os.path.getsize(temp_path)
+        if file_size == 0:
+            logger.warning(f"Rust export produced an empty file for job {job_id}, falling back to Python export")
+            from scraper.export import generate_jsonl_records
+            yield from generate_jsonl_records(job_id, max_chunk_size, overlap)
+            return
+            
+        # Read the first line to check if it's a status message or actual content
         with open(temp_path, 'r', encoding='utf-8') as f:
+            first_line = f.readline().strip()
+            if first_line and ("success" in first_line and "job_id" in first_line and "message" in first_line):
+                logger.warning(f"Rust export returned a status message instead of content for job {job_id}, falling back to Python export")
+                from scraper.export import generate_jsonl_records
+                yield from generate_jsonl_records(job_id, max_chunk_size, overlap)
+                return
+                
+            # Reset file pointer to beginning
+            f.seek(0)
+            
+            # Process all lines
             for line in f:
                 line = line.strip()
                 if line:
@@ -142,4 +205,7 @@ def generate_rust_export_records(
             
     except Exception as e:
         logger.exception(f"Error in Rust-based export generator: {str(e)}")
-        raise
+        # Fall back to Python export on error
+        logger.warning(f"Falling back to Python export after Rust export error")
+        from scraper.export import generate_jsonl_records
+        yield from generate_jsonl_records(job_id, max_chunk_size, overlap)
