@@ -14,25 +14,46 @@ api_bp = Blueprint('api', __name__)
 logger = logging.getLogger(__name__)
 
 # Web interface routes
-@api_bp.route('/', methods=['GET'])
+@api_bp.route('/')
 def index():
     """Render the main dashboard page"""
-    recent_jobs = ScrapingJob.query.order_by(ScrapingJob.created_at.desc()).limit(10).all()
-    configurations = ScrapingConfiguration.query.order_by(ScrapingConfiguration.name).all()
-    
-    # Get statistics
-    total_jobs = ScrapingJob.query.count()
-    total_scraped = ScrapedContent.query.count()
-    active_jobs = ScrapingJob.query.filter(ScrapingJob.status == ScrapingStatus.RUNNING).count()
-    
-    return render_template('index.html', 
-                          recent_jobs=recent_jobs,
-                          configurations=configurations,
-                          stats={
-                              'total_jobs': total_jobs,
-                              'total_scraped': total_scraped,
-                              'active_jobs': active_jobs
-                          })
+    try:
+        # First check if migration is needed and run it if necessary
+        try:
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            existing_columns = [col['name'] for col in inspector.get_columns('scraping_configuration')]
+            
+            if 'enable_intelligent_navigation' not in existing_columns:
+                logger.info("Missing columns detected, running migration")
+                import sys
+                import os
+                sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                from migrate_db import run_migration
+                run_migration()
+                logger.info("Migration completed")
+        except Exception as e:
+            logger.warning(f"Error checking schema or running migration: {e}")
+        
+        recent_jobs = ScrapingJob.query.order_by(ScrapingJob.created_at.desc()).limit(10).all()
+        configurations = ScrapingConfiguration.query.order_by(ScrapingConfiguration.name).all()
+        
+        # Get statistics
+        total_jobs = ScrapingJob.query.count()
+        total_scraped = ScrapedContent.query.count()
+        active_jobs = ScrapingJob.query.filter(ScrapingJob.status == ScrapingStatus.RUNNING).count()
+        
+        return render_template('index.html', 
+                              recent_jobs=recent_jobs,
+                              configurations=configurations,
+                              stats={
+                                  'total_jobs': total_jobs,
+                                  'total_scraped': total_scraped,
+                                  'active_jobs': active_jobs
+                              })
+    except Exception as e:
+        logger.exception(f"Error rendering index page: {e}")
+        return render_template('error.html', error=str(e))
 
 @api_bp.route('/config', methods=['GET', 'POST'])
 def configuration():
@@ -86,6 +107,10 @@ def configuration():
                 config.user_agent_rotation = 'user_agent_rotation' in request.form
                 config.rate_limit_seconds = int(request.form.get('rate_limit', 5))
                 config.max_retries = int(request.form.get('max_retries', 3))
+                # Intelligent navigation settings
+                config.enable_intelligent_navigation = 'enable_intelligent_navigation' in request.form
+                config.quality_threshold = float(request.form.get('quality_threshold', 0.7))
+                config.max_extended_depth = int(request.form.get('max_extended_depth', 2))
                 
                 db.session.commit()
                 flash('Configuration updated successfully', 'success')
@@ -100,7 +125,11 @@ def configuration():
                     respect_robots_txt='respect_robots' in request.form,
                     user_agent_rotation='user_agent_rotation' in request.form,
                     rate_limit_seconds=int(request.form.get('rate_limit', 5)),
-                    max_retries=int(request.form.get('max_retries', 3))
+                    max_retries=int(request.form.get('max_retries', 3)),
+                    # Intelligent navigation settings
+                    enable_intelligent_navigation='enable_intelligent_navigation' in request.form,
+                    quality_threshold=float(request.form.get('quality_threshold', 0.7)),
+                    max_extended_depth=int(request.form.get('max_extended_depth', 2))
                 )
                 
                 db.session.add(new_config)
@@ -137,6 +166,14 @@ def job_status(job_id):
     
     # Basic statistics for this job
     content_count = ScrapedContent.query.filter_by(job_id=job_id).count()
+    
+    # Get the extended depth count (pages beyond standard depth)
+    extended_depth_count = 0
+    if hasattr(job.configuration, 'max_depth'):
+        extended_depth_count = db.session.query(ScrapedContent).filter(
+            ScrapedContent.job_id == job_id,
+            ScrapedContent.crawl_depth > job.configuration.max_depth
+        ).count()
     
     # Enhanced analytics data
     analytics = {}
@@ -210,6 +247,69 @@ def job_status(job_id):
         depths = [c.crawl_depth for c, _ in content_with_metadata]
         if depths:
             analytics['crawl_depth'] = Counter(depths)
+        
+        # Intelligent navigation analytics
+        analytics['intelligent_navigation'] = {
+            'extended_depth_count': extended_depth_count,
+            'high_quality_domains': 0,  # Will populate later
+            'avg_quality_score': 'N/A'  # Will populate later
+        }
+        
+        # Get quality score data from ContentQualityMetrics if available
+        try:
+            from models import ContentQualityMetrics
+            
+            # Check if the table exists (in case the migration hasn't been run yet)
+            from sqlalchemy import inspect
+            quality_metrics_exists = inspect(db.engine).has_table("content_quality_metrics")
+            
+            if quality_metrics_exists:
+                # Get average quality score
+                avg_quality_result = db.session.query(func.avg(ContentQualityMetrics.quality_score)).filter(
+                    ContentQualityMetrics.content_id == ScrapedContent.id,
+                    ScrapedContent.job_id == job_id
+                ).scalar()
+                
+                if avg_quality_result:
+                    analytics['intelligent_navigation']['avg_quality_score'] = float(avg_quality_result)
+                    
+                # Count high-quality domains
+                # Get threshold from config or use default
+                quality_threshold = 0.7  # Default value
+                try:
+                    if hasattr(job.configuration, 'quality_threshold'):
+                        quality_threshold = float(job.configuration.quality_threshold)
+                except (AttributeError, ValueError):
+                    # Fallback to default if attribute doesn't exist or can't be converted to float
+                    pass
+                    
+                high_quality_domains = db.session.query(func.count(func.distinct(ContentQualityMetrics.domain))).filter(
+                    ContentQualityMetrics.content_id == ScrapedContent.id,
+                    ScrapedContent.job_id == job_id,
+                    ContentQualityMetrics.domain_avg_score > quality_threshold
+                ).scalar()
+                
+                analytics['intelligent_navigation']['high_quality_domains'] = high_quality_domains or 0
+                
+                # Quality distribution
+                quality_bins = [0, 0.3, 0.5, 0.7, 0.9, 1.0]
+                quality_distribution = {}
+                
+                for i in range(len(quality_bins) - 1):
+                    count = db.session.query(func.count()).filter(
+                        ContentQualityMetrics.content_id == ScrapedContent.id,
+                        ScrapedContent.job_id == job_id,
+                        ContentQualityMetrics.quality_score >= quality_bins[i],
+                        ContentQualityMetrics.quality_score < quality_bins[i + 1]
+                    ).scalar()
+                    
+                    bin_label = f"{quality_bins[i]:.1f}-{quality_bins[i+1]:.1f}"
+                    quality_distribution[bin_label] = count or 0
+                
+                analytics['intelligent_navigation']['quality_distribution'] = quality_distribution
+        except Exception as e:
+            logger.warning(f"Error collecting intelligent navigation stats: {e}")
+            # Keep default values in analytics
     
     return render_template('status.html', job=job, content_count=content_count, analytics=analytics)
 
@@ -226,10 +326,30 @@ def view_job_content(job_id):
     if per_page not in [10, 25, 50, 100]:
         per_page = 25
     
-    # Query content with pagination
-    pagination = ScrapedContent.query.filter_by(job_id=job_id).order_by(
-        ScrapedContent.id.desc()
-    ).paginate(page=page, per_page=per_page)
+    # Query content with pagination, including quality metrics when available
+    from sqlalchemy.orm import joinedload
+    try:
+        from models import ContentQualityMetrics
+        
+        # Check if ContentQualityMetrics table exists (in case migration hasn't been run yet)
+        quality_metrics_exists = db.engine.dialect.has_table(db.engine, 'content_quality_metrics')
+        
+        if quality_metrics_exists:
+            # Join with quality metrics when available
+            pagination = ScrapedContent.query.filter_by(job_id=job_id).order_by(
+                ScrapedContent.id.desc()
+            ).options(joinedload('quality_metrics')).paginate(page=page, per_page=per_page)
+        else:
+            # Fall back to basic query without quality metrics
+            pagination = ScrapedContent.query.filter_by(job_id=job_id).order_by(
+                ScrapedContent.id.desc()
+            ).paginate(page=page, per_page=per_page)
+    except Exception as e:
+        logger.warning(f"Error loading quality metrics: {e}")
+        # Fall back to basic query without quality metrics
+        pagination = ScrapedContent.query.filter_by(job_id=job_id).order_by(
+            ScrapedContent.id.desc()
+        ).paginate(page=page, per_page=per_page)
     
     return render_template('content.html', job=job, pagination=pagination, per_page=per_page)
 

@@ -28,6 +28,17 @@ app = Flask(__name__)
 # Set default secret key if not provided in environment
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
+# Add custom template filters
+@app.template_filter('has_attr')
+def has_attr_filter(obj, attr):
+    """Jinja2 filter to check if an object has an attribute"""
+    return hasattr(obj, attr)
+
+@app.template_filter('attr_value')
+def attr_value_filter(obj, attr, default=None):
+    """Jinja2 filter to get attribute value with a default"""
+    return getattr(obj, attr, default)
+
 # Configure the database - fallback to SQLite for local development if no PostgreSQL URL is provided
 database_url = os.environ.get("DATABASE_URL")
 if not database_url:

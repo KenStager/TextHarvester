@@ -390,6 +390,82 @@
                         </div>
                         {% endif %}
                         
+                        {% if analytics and analytics.get('intelligent_navigation') %}
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h4>
+                                    <i class="bi bi-bezier2"></i> Intelligent Navigation Stats
+                                    <span class="badge bg-info ms-2">New</span>
+                                </h4>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row g-4 mb-4">
+                                            <div class="col-md-4">
+                                                <div class="card bg-info bg-opacity-10 h-100">
+                                                    <div class="card-body text-center">
+                                                        <h6 class="card-title">Extended Depth Pages</h6>
+                                                        <h2 class="display-4">{{ analytics.intelligent_navigation.extended_depth_count }}</h2>
+                                                        <p class="mb-0 text-muted">Pages beyond standard depth</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="card bg-success bg-opacity-10 h-100">
+                                                    <div class="card-body text-center">
+                                                        <h6 class="card-title">Avg. Quality Score</h6>
+                                                        <h2 class="display-4">{{ analytics.intelligent_navigation.avg_quality_score|round(2) if analytics.intelligent_navigation.avg_quality_score != 'N/A' else 'N/A' }}</h2>
+                                                        <p class="mb-0 text-muted">Higher is better (0-1 scale)</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="card bg-primary bg-opacity-10 h-100">
+                                                    <div class="card-body text-center">
+                                                        <h6 class="card-title">High-Quality Domains</h6>
+                                                        <h2 class="display-4">{{ analytics.intelligent_navigation.high_quality_domains }}</h2>
+                                                        <p class="mb-0 text-muted">Domains with avg. score > {{ job.configuration|attr_value('quality_threshold', 0.7) }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {% if analytics.intelligent_navigation.get('quality_distribution') %}
+                                        <!-- Quality Distribution Chart -->
+                                        <div class="row">
+                                            <div class="col-md-8">
+                                                <div class="chart-container">
+                                                    <canvas id="qualityDistributionChart"></canvas>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <h5>Quality Score Distribution</h5>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Score Range</th>
+                                                                <th class="text-end">Pages</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for range, count in analytics.intelligent_navigation.quality_distribution.items() %}
+                                                            <tr>
+                                                                <td>{{ range }}</td>
+                                                                <td class="text-end">{{ count }}</td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
                         {% if job.log_output %}
                         <div class="row mb-4">
                             <div class="col-12">
@@ -443,6 +519,44 @@
                                                 <tr>
                                                     <th>Max Retries:</th>
                                                     <td>{{ job.configuration.max_retries }}</td>
+                                                </tr>
+                                                
+                                                <!-- Intelligent Navigation Settings -->
+                                                <tr>
+                                                    <th colspan="2" class="table-info">
+                                                        <i class="bi bi-bezier2"></i> Intelligent Navigation Settings
+                                                        <span class="badge bg-info ms-2">New</span>
+                                                    </th>
+                                                </tr>
+                                                <tr>
+                                                    <th>Enabled:</th>
+                                                    <td>
+                                                        {% if job.configuration|has_attr('enable_intelligent_navigation') %}
+                                                            {{ 'Yes' if job.configuration.enable_intelligent_navigation else 'No' }}
+                                                        {% else %}
+                                                            Yes (Default)
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Quality Threshold:</th>
+                                                    <td>
+                                                        {% if job.configuration|has_attr('quality_threshold') %}
+                                                            {{ job.configuration.quality_threshold }}
+                                                        {% else %}
+                                                            0.7 (Default)
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Max Extended Depth:</th>
+                                                    <td>Standard Depth + 
+                                                        {% if job.configuration|has_attr('max_extended_depth') %}
+                                                            {{ job.configuration.max_extended_depth }}
+                                                        {% else %}
+                                                            2 (Default)
+                                                        {% endif %}
+                                                    </td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -701,6 +815,50 @@
                             title: {
                                 display: true,
                                 text: 'Number of Pages'
+                            }
+                        }
+                    }
+                }
+            });
+            {% endif %}
+            
+            {% if analytics.get('intelligent_navigation') and analytics.intelligent_navigation.get('quality_distribution') %}
+            // Quality Distribution Chart
+            const qualityLabels = Object.keys({{ analytics.intelligent_navigation.quality_distribution|tojson }});
+            const qualityData = Object.values({{ analytics.intelligent_navigation.quality_distribution|tojson }});
+            
+            new Chart(document.getElementById('qualityDistributionChart'), {
+                type: 'bar',
+                data: {
+                    labels: qualityLabels,
+                    datasets: [{
+                        label: 'Pages by Quality Score',
+                        data: qualityData,
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Content Quality Distribution'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Number of Pages'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Quality Score Range'
                             }
                         }
                     }

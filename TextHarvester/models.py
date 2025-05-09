@@ -1,7 +1,7 @@
 from datetime import datetime
 import enum
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum, JSON, Table
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum, JSON, Table, Float
+from sqlalchemy.orm import relationship, backref
 
 from app import db
 
@@ -26,6 +26,10 @@ class ScrapingConfiguration(db.Model):
     user_agent_rotation = Column(Boolean, default=True)
     rate_limit_seconds = Column(Integer, default=5)  # Rate limiting in seconds
     max_retries = Column(Integer, default=3)
+    # Intelligent navigation settings
+    enable_intelligent_navigation = Column(Boolean, default=True)
+    quality_threshold = Column(Float, default=0.7)  # Quality score threshold for extending depth
+    max_extended_depth = Column(Integer, default=2)  # Max levels beyond standard depth to allow
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -70,6 +74,7 @@ class ScrapedContent(db.Model):
     
     job = relationship("ScrapingJob", back_populates="contents")
     content_metadata = relationship("ContentMetadata", back_populates="content", cascade="all, delete-orphan", uselist=False)
+    # The quality_metrics relationship is defined in the ContentQualityMetrics model using backref
     
     # Create an index on job_id and created_at for faster pagination queries
     __table_args__ = (
@@ -78,6 +83,13 @@ class ScrapedContent(db.Model):
     
     def __repr__(self):
         return f"<ScrapedContent {self.id} - {self.url}>"
+        
+    @property
+    def quality_score(self):
+        """Get the quality score if quality metrics exist"""
+        if hasattr(self, 'quality_metrics') and self.quality_metrics:
+            return self.quality_metrics.quality_score
+        return None
 
 class ContentMetadata(db.Model):
     __tablename__ = 'content_metadata'
@@ -148,3 +160,21 @@ source_list_sources = Table(
 # Add relationships after the table is defined
 Source.source_lists = relationship("SourceList", secondary=source_list_sources, back_populates="sources")
 SourceList.sources = relationship("Source", secondary=source_list_sources, back_populates="source_lists")
+
+class ContentQualityMetrics(db.Model):
+    """Quality metrics for scraped content to support intelligent navigation"""
+    __tablename__ = 'content_quality_metrics'
+    
+    id = Column(Integer, primary_key=True)
+    content_id = Column(Integer, ForeignKey('scraped_content.id'), nullable=False, index=True)
+    quality_score = Column(Float, nullable=False)
+    word_count = Column(Integer, nullable=True)
+    paragraph_count = Column(Integer, nullable=True)
+    text_ratio = Column(Float, nullable=True)  # Text-to-HTML ratio
+    domain = Column(String(255), nullable=True, index=True)
+    domain_avg_score = Column(Float, nullable=True)
+    parent_url = Column(String(2048), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationship to content
+    content = relationship("ScrapedContent", backref=backref("quality_metrics", uselist=False))

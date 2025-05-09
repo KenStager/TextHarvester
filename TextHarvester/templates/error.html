@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Error - TextHarvester{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-header bg-danger bg-opacity-25">
+            <h2 class="card-title">Error</h2>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <p><i class="bi bi-exclamation-triangle me-2"></i> <strong>An error occurred:</strong></p>
+                <p>{{ error }}</p>
+            </div>
+            
+            <div class="alert alert-info">
+                <p><i class="bi bi-info-circle me-2"></i> <strong>Possible solution:</strong></p>
+                <p>The database schema may need to be updated. Please try running the migration script:</p>
+                <pre class="bg-dark text-light p-3 rounded">python migrate_db.py</pre>
+                <p>If the issue persists, please check the logs for more information.</p>
+            </div>
+            
+            <div class="mt-3">
+                <a href="/" class="btn btn-primary">
+                    <i class="bi bi-house me-2"></i> Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

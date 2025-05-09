@@ -1,408 +1,196 @@
-# NLP Corpus Builder with Content Intelligence
+# TextHarvester: Web Scraping & Content Intelligence Platform
 
-A comprehensive web scraping and content intelligence platform for collecting, analyzing, and structuring domain-specific text data. This versatile system helps you gather high-quality text data for training NER (Named Entity Recognition) and text classification models across any field - with a special focus on Premier League football as the demonstration domain.
+TextHarvester is a web scraping platform designed to collect, process, and analyze text data from across the web. Originally developed as a dedicated web scraper, the system is now evolving to incorporate intelligence features for content analysis.
 
-## Overview
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Python](https://img.shields.io/badge/python-3.11+-green)
+![License](https://img.shields.io/badge/license-MIT-orange)
 
-The NLP Corpus Builder is a domain-agnostic tool that enables researchers, data scientists, and AI engineers to efficiently gather and analyze high-quality text data from specific sources. The platform streamlines the entire process from source management to content extraction, classification, and knowledge extraction.
+## Project Status
 
-The system is designed to be memory-efficient, handling large-scale crawling jobs with thousands of pages while providing robust error handling and resource management. All content is automatically cleaned, normalized, and prepared for NER/SpanCat annotation and topic classification.
-
-## Architecture
-
-The system follows a modular architecture with these key components:
-
-```
-┌─────────────────┐     ┌──────────────────────────────────────┐     ┌───────────────────┐
-│                 │     │         TOPIC-SPECIFIC               │     │                   │
-│  NLP CORPUS     │     │      CONTENT INTELLIGENCE            │     │     CONTENT       │
-│   BUILDER       │──►  │              LAYER                   │──►  │    GENERATION     │
-│  (EXISTING)     │     │                                      │     │    FRAMEWORK      │
-└─────────────────┘     └──────────────────────────────────────┘     └───────────────────┘
-                                        │
-                                        ▼
-                        ┌──────────────────────────────────────┐
-                        │           KNOWLEDGE                  │
-                        │          MANAGEMENT                  │
-                        │            SYSTEM                    │
-                        └──────────────────────────────────────┘
-```
+- **Web Scraping**: Production-ready with high-performance, parallel crawling
+- **Content Processing**: Stable with both Python and Rust-based extraction
+- **Intelligence Features**: Under active development - basic classification and entity extraction are implemented
 
 ## Key Features
 
-### Core Web Scraper
-- **Advanced source management system**
-  - Organize sources into categorized lists
-  - Source validation and testing
-  - Predefined source lists for common domains
-  - Import/export of source configurations
+### Web Scraping Engine
+- **Parallel Domain Processing**: Multi-threaded crawling optimized for large-scale data collection
+- **Intelligent Navigation**: Quality-based crawling that automatically extends depth for high-value content
+- **Robust Management**: Rate limiting, retry mechanisms, and job control
+- **Source Management**: Organize sources into categorized lists with validation and testing
 
-- **High-performance parallel web crawler**
-  - Multi-threaded domain processing
-  - Configurable crawl depth and link following
-  - Rate limiting and robots.txt compliance
-  - User agent rotation and request throttling
-  - Robust error handling and retry mechanisms
+### Content Processing
+- **High-Performance Extraction**: Rust-based extractor with Python fallback
+- **Quality Assessment**: Automatic evaluation of content quality and relevance
+- **Advanced Cleaning**: Multi-stage text normalization and cleaning
 
-- **Intelligent content extraction**
-  - Precise main content detection with trafilatura
-  - Rust-based high-performance extraction (optional)
-  - Fallback extraction mechanisms
-  - Advanced text cleaning and normalization
-  - Metadata extraction and storage
+### Intelligence Engine (In Development)
+- **Content Classification**: Categorize content by topic with confidence scores
+- **Entity Extraction**: Identify and extract named entities with contextual information
+- **Domain-Specific Analysis**: Specialized processing for different knowledge domains
+- **Pipeline Architecture**: Modular, extensible analysis workflows
 
-- **Comprehensive job management**
-  - Real-time job monitoring and analytics
-  - Pausable/stoppable background jobs
-  - Detailed logging and diagnostics
-  - Job comparison and trend analysis
+### Data Management
+- **Efficient Storage**: Optimized database models for content and analysis results
+- **Streaming Export**: Memory-efficient export for large datasets
+- **Flexible Formats**: Support for various export formats including JSONL for annotation
 
-- **Memory-efficient data export**
-  - Streaming export for large datasets
-  - Chunking algorithms for NER/SpanCat training
-  - Customizable chunk sizes and overlaps
-  - Export with or without original HTML
-  - JSONL format compatible with annotation tools
+### Web Interface
+- **Interactive Dashboard**: Real-time monitoring of crawling jobs
+- **Content Exploration**: Browse, search, and analyze collected content
+- **Configuration Management**: Create and manage crawling configurations
+- **Visualization**: View and understand intelligence results
 
-### Content Intelligence Layer
+## System Architecture
 
-- **Topic Classification System** (Implemented)
-  - Hierarchical topic taxonomy management
-  - Fast filtering for rapid content relevance screening
-  - Multiple classifier implementations (SVM, LR, RF)
-  - Football-specific taxonomy with detailed categories
-  - Prodigy integration for annotation and training
+TextHarvester follows a modular architecture with clear separation of concerns:
 
-- **Named Entity Recognition** (Implemented)
-  - Custom entity type definitions with inheritance
-  - Specialized football entity taxonomy
-  - Domain-specific entity recognition models
-  - Entity linking to knowledge base
-  - Relationship extraction between entities
+```
+┌───────────────┐     ┌─────────────────┐     ┌──────────────────┐
+│               │     │                 │     │                  │
+│ Web Scraper   ├────►│ Content         ├────►│ Intelligence     │
+│               │     │ Processor       │     │ Engine           │
+└───────┬───────┘     └─────────┬───────┘     └──────────┬───────┘
+        │                       │                        │
+        │                       │                        │
+        ▼                       ▼                        ▼
+┌───────────────────────────────────────────────────────────────┐
+│                       Database Layer                           │
+└───────────────────────────────────────────────────────────────┘
+                               ▲
+                               │
+                               ▼
+┌───────────────────────────────────────────────────────────────┐
+│                        Web Interface                           │
+└───────────────────────────────────────────────────────────────┘
+```
 
-- **Knowledge Management System** (In Development)
-  - Knowledge graph representation
-  - Entity and relationship storage
-  - Contradiction detection
-  - Source credibility assessment
-  - Querying and visualization tools
+For a more detailed architecture overview, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
-## Current Implementation Status
+## Use Cases
 
-- ✅ **Core Web Scraper**: Fully implemented with high-performance extraction
-- ✅ **Database Foundation**: Schema and ORM models implemented
-- ✅ **Core Framework**: Configuration, utilities, and base pipeline
-- ✅ **Topic Classification**: Complete football-specific implementation
-- ✅ **Entity Recognition**: Complete football-specific implementation
-- 🔄 **Rust Integration**: Optional high-speed content extraction engine
-- 🚧 **Knowledge Management**: In development
-- 🔜 **Content Generation**: Planned for future development
+- **Research Data Collection**: Gather corpus data for NLP/ML research
+- **Media Monitoring**: Track coverage across multiple sources  
+- **Competitive Intelligence**: Analyze industry trends and competitor content
+- **Content Aggregation**: Build specialized knowledge bases
+- **Training Data Creation**: Generate labeled datasets for machine learning
+
+## Quick Start
+
+### Prerequisites
+- Python 3.11+
+- PostgreSQL
+- Optionally: Rust for the high-performance extractor
+
+### Installation
+
+For quick setup:
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd TextHarvester
+
+# Run setup
+python setup.py
+
+# Start application
+python run_text_harvester.py
+```
+
+Then access the web interface at: http://localhost:5000
+
+For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md).
+
+### First Scraping Job
+
+1. **Create a Source List**
+   - Navigate to Sources → New Source List
+   - Add sources manually or import from predefined lists
+
+2. **Create a Scraping Configuration**
+   - Set crawl depth, rate limiting, and other parameters
+   - Enable intelligence features if desired
+
+3. **Start the Job**
+   - Click "Start Job" on the configuration page
+   - Monitor progress in real-time on the status page
+
+4. **Export Results**
+   - Once complete, export data in JSONL format
+   - Use for analysis, annotation, or other downstream tasks
 
 ## Project Structure
 
-```
-TextHarvester/
-├── README.md
-├── requirements.txt
-├── setup.py
-├── run_text_harvester.py
-├── TextHarvester/
-│   ├── app.py
-│   ├── main.py
-│   ├── models.py
-│   ├── data/         # Database and local storage
-│   ├── static/       # Web interface assets
-│   ├── templates/    # HTML templates
-│   ├── scraper/      # Web scraper components
-│   │   ├── content_extractor.py
-│   │   ├── crawler.py
-│   │   ├── export.py
-│   │   ├── rust_integration.py
-│   │   ├── source_lists.py
-│   │   └── utils.py
-│   ├── rust_extractor/  # Rust-based extractor (optional)
-│   │   ├── Cargo.toml
-│   │   ├── src/
-│   │   └── README.md
-│   └── api/          # API endpoints
-│       ├── routes.py
-│       └── sources.py
-├── intelligence/     # Content intelligence components
-│   ├── base_pipeline.py
-│   ├── config.py
-│   ├── __init__.py
-│   ├── classification/  # Topic classification
-│   │   ├── classifiers.py
-│   │   ├── fast_filter.py
-│   │   ├── pipeline.py
-│   │   ├── topic_taxonomy.py
-│   │   └── taxonomies/
-│   │       └── football.py
-│   ├── entities/     # Entity recognition
-│   │   ├── entity_types.py
-│   │   ├── linking.py
-│   │   ├── ner_model.py
-│   │   ├── pipeline.py
-│   │   └── taxonomies/
-│   │       └── football_entities.py
-│   ├── knowledge/    # Knowledge management (in development)
-│   │   └── ...
-│   └── utils/        # Utility functions
-│       ├── model_utils.py
-│       ├── prodigy_integration.py
-│       └── text_processing.py
-├── db/              # Database models and migrations
-│   └── models/
-│       ├── topic_taxonomy.py
-│       ├── entity_models.py
-│       └── content_intelligence.py
-├── prodigy/         # Prodigy annotation recipes
-│   └── recipes/
-│       ├── domain_ner.py
-│       └── topic_classification.py
-└── tests/           # Test cases
-    └── integration/
-        └── test_rust_classification.py
-```
+- `api/`: API routes and controllers
+- `db_migrations/`: Database migration scripts
+- `intelligence/`: Content analysis components
+- `rust_extractor/`: High-performance content extraction
+- `scraper/`: Core web scraping functionality
+- `static/`: Static assets for web UI
+- `templates/`: HTML templates
+- `tests/`: Test suite
 
-## Installation
+## Documentation
 
-### Prerequisites
+### Core Documentation
+- [INSTALLATION.md](INSTALLATION.md): Comprehensive setup instructions
+- [ARCHITECTURE.md](ARCHITECTURE.md): Detailed system architecture and design
+- [DEVELOPMENT.md](DEVELOPMENT.md): Development workflow and contribution guidelines
+- [CHANGELOG.md](CHANGELOG.md): Version history and feature updates
+- [INTELLIGENCE-ROADMAP.md](INTELLIGENCE-ROADMAP.md): Current state and future plans for intelligence features
 
-- Python 3.9+
-- PostgreSQL database (optional, SQLite works for development)
-- Rust (optional, for high-performance extraction)
+### Technical Documentation
+- [docs/components/rust_extractor.md](docs/components/rust_extractor.md): Rust content extraction engine
+- [docs/features/intelligent_navigation.md](docs/features/intelligent_navigation.md): Quality-based crawling system
+- [docs/database.md](docs/database.md): Database schema and design
 
-### Quick Setup
+## Components
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd TextHarvester
-```
+### Rust Extractor
 
-2. Run the setup script:
-```bash
-python setup.py
-```
+The Rust-based content extractor provides significant performance improvements:
 
-3. Run the system:
-```bash
-python run_text_harvester.py
-```
+- **5-10x faster** processing than Python-based alternatives
+- **50-70% less memory** consumption
+- **High accuracy** content extraction
+- **Robust handling** of different HTML formats
 
-4. Access the web interface:
-Open your browser and go to http://localhost:5000
+### Intelligent Navigation
 
-### Manual Setup
+The crawler includes an intelligent navigation system that:
+- Adaptively adjusts crawl depth based on content quality
+- Tracks parent-child relationships between URLs
+- Evaluates page quality using metrics like content length and structure
+- Optimizes resource usage by focusing on high-value content paths
 
-1. Set up Python virtual environment (recommended):
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+### Intelligence Features (In Development)
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+Current intelligence capabilities include:
+- Basic content classification into predefined topics
+- Named entity recognition for people, organizations, locations, etc.
+- Initial framework for domain-specific analysis
+- Pipeline architecture for future expansion
 
-3. Configure the database:
-- Copy `.env.example` to `.env` in the TextHarvester directory
-- Edit `.env` to configure database connection (SQLite is used by default)
+## Contributing
 
-4. Run the application:
-```bash
-python run_text_harvester.py
-```
+Contributions are welcome! Please see [DEVELOPMENT.md](DEVELOPMENT.md) for guidelines.
 
-## Usage
-
-### Web Interface
-
-The web interface provides comprehensive management of all scraping and intelligence functions:
-
-1. **Source Management**:
-   - Create and organize sources into lists
-   - Test source extraction quality
-   - Import/export source configurations
-
-2. **Scraping Jobs**:
-   - Configure job parameters (depth, rate limits, etc.)
-   - Monitor job progress in real-time
-   - View performance metrics and statistics
-   - Export results in various formats
-
-3. **Content Intelligence**:
-   - View topic classification for extracted content
-   - Explore entity recognition results
-   - Browse knowledge graph (when implemented)
-
-### API Usage
-
-The system provides a RESTful API for integration with other applications:
-
-```python
-import requests
-
-# Start a new scraping job
-job_config = {
-    "source_list_id": 1,
-    "max_depth": 2,
-    "follow_links": True,
-    "rate_limit": 5  # requests per second
-}
-response = requests.post("http://localhost:5000/api/jobs", json=job_config)
-job_id = response.json()["job_id"]
-
-# Get job status
-job_status = requests.get(f"http://localhost:5000/api/jobs/{job_id}").json()
-
-# Export job results
-export_config = {
-    "job_id": job_id,
-    "format": "jsonl",
-    "include_html": False,
-    "chunking": {
-        "enabled": True,
-        "size": 500,
-        "overlap": 50
-    }
-}
-export_url = requests.post("http://localhost:5000/api/export", json=export_config).json()["url"]
-```
-
-## Football Domain Implementation
-
-As a demonstration domain, the system includes specialized components for Premier League football:
-
-### Topic Classification Taxonomy
-- Complete Premier League team hierarchy (all 20 teams)
-- Player categories (goalkeepers, defenders, midfielders, forwards)
-- Matches, transfers, competitions
-- Statistics, venues, finances, media coverage
-
-### Entity Recognition
-- Team detection with nickname handling
-- Player identification
-- Match event extraction
-- Competition and venue recognition
-
-## Customization
-
-The system is designed to be easily adaptable to new domains:
-
-1. **Create a new taxonomy**:
-```python
-from intelligence.classification.topic_taxonomy import TopicTaxonomy, TopicNode
-
-# Create root taxonomy
-my_taxonomy = TopicTaxonomy(
-    name="my_domain",
-    description="My custom domain taxonomy"
-)
-
-# Create main category
-main_category = TopicNode(
-    name="Main Category", 
-    keywords=["keyword1", "keyword2"]
-)
-my_taxonomy.add_root_node(main_category)
-
-# Add subcategories
-subcategory = TopicNode(
-    name="Subcategory",
-    keywords=["specific1", "specific2"]
-)
-main_category.add_child(subcategory)
-
-# Save to database
-my_taxonomy.save_to_database()
-```
-
-2. **Create domain-specific entity types**:
-```python
-from intelligence.entities.entity_types import EntityType
-
-# Create custom entity types
-DOMAIN_ENTITY_TYPES = {
-    "CUSTOM_ENTITY": {
-        "subtypes": ["SUBTYPE1", "SUBTYPE2"],
-        "attributes": ["attribute1", "attribute2"]
-    }
-}
-```
-
-3. **Implement custom pipelines**:
-```python
-from intelligence.classification.pipeline import ClassificationPipeline
-from intelligence.entities.pipeline import EntityExtractionPipeline
-
-# Create custom pipelines
-my_classification_pipeline = ClassificationPipeline(
-    taxonomy=my_taxonomy,
-    confidence_threshold=0.6,
-    domain_name="my_domain"
-)
-
-my_entity_pipeline = EntityExtractionPipeline(
-    entity_types=DOMAIN_ENTITY_TYPES,
-    domain_name="my_domain"
-)
-```
-
-## Requirements
-
-- Python 3.9+
-- PostgreSQL database (optional, SQLite works for development)
-- Required Python packages (installed by setup.py):
-  - flask & flask-sqlalchemy: Web framework and ORM
-  - beautifulsoup4: HTML parsing
-  - trafilatura: Main content extraction
-  - scikit-learn: Machine learning models
-  - requests: HTTP client
-  - python-dotenv: Environment variable management
-
-## Optional Components
-
-- **Rust Extractor**: High-performance content extraction (requires Rust installation)
-- **Prodigy Integration**: For training custom models (requires Prodigy license)
-- **PostgreSQL**: For production deployment (SQLite works for development)
-
-## Common Use Cases
-
-- **Academic Research**: Collect domain-specific corpora for research in linguistics, NLP, or domain-specific studies
-- **AI Training Data**: Build custom datasets for training specialized language models or NER systems
-- **Market Intelligence**: Monitor specific sources for competitive intelligence and trend analysis
-- **Knowledge Base Construction**: Gather domain knowledge for expert systems or semantic databases
-- **Educational Content**: Collect learning materials on specific topics for educational applications
-- **Media Monitoring**: Track publications across multiple sources for specific topics or entities
-
-## Troubleshooting
-
-### Database Issues
-- Check that the data directory exists and has proper permissions
-- For SQLite: Delete any corrupted database file
-- For PostgreSQL: Verify connection parameters in .env file
-
-### Rust Extractor Issues
-- Ensure Rust and Cargo are installed
-- Check that the Rust extractor binary is properly built
-- Set USE_PYTHON_EXTRACTION=1 in .env to force Python extraction
-
-### Web Interface Issues
-- Clear browser cache and cookies
-- Check for JavaScript console errors
-- Verify that all static assets are loading
+Key areas for contribution:
+- Additional content extractors
+- Intelligence feature development
+- Performance improvements
+- Documentation and examples
+- UI enhancements
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- Trafilatura for content extraction
-- Flask for web framework
-- scikit-learn for machine learning models
-- Prodigy for annotation integration
-- Rust for high-performance content extraction (optional component)
+- Trafilatura for Python-based content extraction
+- SQLAlchemy for database ORM
+- Flask for the web framework
+- Various open-source NLP libraries for intelligence features

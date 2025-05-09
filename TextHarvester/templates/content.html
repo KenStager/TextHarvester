@@ -97,7 +97,26 @@
                                             {{ item.url }}
                                         </a>
                                     </td>
-                                    <td>{{ item.crawl_depth }}</td>
+                                    <td>
+                                        <span class="badge {% if item.crawl_depth > job.configuration.max_depth %}bg-success{% else %}bg-secondary{% endif %}">
+                                            Depth {{ item.crawl_depth }}
+                                        </span>
+                                        
+                                        {% if item|has_attr('quality_metrics') and item.quality_metrics %}
+                                        <div class="progress mt-1" style="height: 5px;">
+                                            <div class="progress-bar 
+                                                      {% if item.quality_metrics.quality_score > 0.7 %}bg-success
+                                                      {% elif item.quality_metrics.quality_score > 0.4 %}bg-info
+                                                      {% else %}bg-warning{% endif %}"
+                                                 role="progressbar"
+                                                 style="width: {{ item.quality_metrics.quality_score * 100 }}%"
+                                                 aria-valuenow="{{ item.quality_metrics.quality_score * 100 }}"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ item.extracted_text|length }} chars</td>
                                     <td>
                                         <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#contentModal-{{ item.id }}">
@@ -178,8 +197,34 @@
                     <strong>URL:</strong> <a href="{{ item.url }}" target="_blank">{{ item.url }}</a>
                 </div>
                 <div class="mb-3">
-                    <strong>Crawl Depth:</strong> {{ item.crawl_depth }}
+                    <strong>Crawl Depth:</strong> 
+                    <span class="badge {% if item.crawl_depth > job.configuration.max_depth %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ item.crawl_depth }}
+                        {% if item.crawl_depth > job.configuration.max_depth %}
+                        (Extended)
+                        {% endif %}
+                    </span>
                 </div>
+                {% if item|has_attr('quality_metrics') and item.quality_metrics %}
+                <div class="mb-3">
+                    <strong>Quality Score:</strong>
+                    <div class="d-inline-block" style="width: 200px;">
+                        <div class="progress">
+                            <div class="progress-bar 
+                                    {% if item.quality_metrics.quality_score > 0.7 %}bg-success
+                                    {% elif item.quality_metrics.quality_score > 0.4 %}bg-info
+                                    {% else %}bg-warning{% endif %}"
+                                style="width: {{ item.quality_metrics.quality_score * 100 }}%"
+                                role="progressbar"
+                                aria-valuenow="{{ item.quality_metrics.quality_score * 100 }}"
+                                aria-valuemin="0"
+                                aria-valuemax="100">
+                                {{ (item.quality_metrics.quality_score * 100)|round|int }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="mb-3">
                     <strong>Processing Time:</strong> {{ item.processing_time }} ms
                 </div>

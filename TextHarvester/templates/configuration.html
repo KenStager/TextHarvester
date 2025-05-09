@@ -33,7 +33,15 @@
             'data-export',
             'left'
         );
+        
+        // Initialize quality threshold display
+        updateQualityLabel(document.getElementById('quality_threshold').value);
     });
+    
+    // Update quality threshold label when slider is moved
+    function updateQualityLabel(value) {
+        document.getElementById('quality_threshold_value').textContent = value;
+    }
 </script>
 {% endblock %}
 
@@ -159,6 +167,56 @@
                                                 <input class="form-check-input" type="checkbox" id="user_agent_rotation" name="user_agent_rotation" {% if not config or config.user_agent_rotation %}checked{% endif %}>
                                                 <label class="form-check-label" for="user_agent_rotation">User Agent Rotation</label>
                                                 <div class="form-text">If enabled, the crawler will use different user agents for each request</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Intelligent Navigation Section -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h5 class="card-title mb-0">
+                                                <i class="bi bi-bezier2"></i> Intelligent Navigation
+                                                <span class="badge bg-info ms-2">New</span>
+                                            </h5>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="enable_intelligent_navigation" name="enable_intelligent_navigation" {% if not config or config.enable_intelligent_navigation %}checked{% endif %}>
+                                                <label class="form-check-label" for="enable_intelligent_navigation">Enabled</label>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <p>Make smart crawling decisions based on content quality to discover more valuable content.</p>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="quality_threshold" class="form-label">Quality Threshold</label>
+                                                        <div class="d-flex align-items-center">
+                                                            <input type="range" class="form-range flex-grow-1" id="quality_threshold" name="quality_threshold" 
+                                                                min="0.5" max="0.9" step="0.05" value="{{ config.quality_threshold if config and config.quality_threshold else 0.7 }}" oninput="updateQualityLabel(this.value)">
+                                                            <span id="quality_threshold_value" class="ms-2 badge bg-primary">{{ config.quality_threshold if config and config.quality_threshold else 0.7 }}</span>
+                                                        </div>
+                                                        <div class="form-text">Higher values require better content quality to extend crawl depth.</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label for="max_extended_depth" class="form-label">Maximum Extended Depth</label>
+                                                        <div class="input-group">
+                                                            <span class="input-group-text">Standard Depth + </span>
+                                                            <input type="number" class="form-control" id="max_extended_depth" name="max_extended_depth" min="1" max="3" value="{{ config.max_extended_depth if config and config.max_extended_depth else 2 }}">
+                                                        </div>
+                                                        <div class="form-text">How many levels beyond standard depth to allow for high-quality content.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="alert alert-info mt-3">
+                                                <i class="bi bi-info-circle me-2"></i> Intelligent navigation analyzes content quality and makes smart decisions about which links to follow beyond your standard crawl depth. This helps discover high-value content while avoiding low-quality pages.
                                             </div>
                                         </div>
                                     </div>

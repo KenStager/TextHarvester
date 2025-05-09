@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Intelligence Configuration{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Intelligence Configuration</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">Content Intelligence Settings</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('api.update_intelligence_config', config_id=config.id) }}">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h5>Classification Settings</h5>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="enable_classification" name="enable_classification" {% if config.enable_classification %}checked{% endif %}>
+                            <label class="form-check-label" for="enable_classification">Enable Content Classification</label>
+                        </div>
+                        <small class="text-muted">
+                            Automatically analyze and categorize content by topic and relevance.
+                        </small>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5>Entity Extraction Settings</h5>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="enable_entity_extraction" name="enable_entity_extraction" {% if config.enable_entity_extraction %}checked{% endif %}>
+                            <label class="form-check-label" for="enable_entity_extraction">Enable Entity Extraction</label>
+                        </div>
+                        <small class="text-muted">
+                            Automatically detect and extract named entities (people, organizations, locations, etc.).
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="intelligence_domain" class="form-label">Intelligence Domain</label>
+                        <select class="form-select" id="intelligence_domain" name="intelligence_domain">
+                            <option value="football" {% if config.intelligence_domain == 'football' %}selected{% endif %}>Football</option>
+                            <option value="general" {% if config.intelligence_domain == 'general' %}selected{% endif %}>General</option>
+                            <option value="finance" {% if config.intelligence_domain == 'finance' %}selected{% endif %}>Finance</option>
+                            <option value="technology" {% if config.intelligence_domain == 'technology' %}selected{% endif %}>Technology</option>
+                        </select>
+                        <small class="text-muted">
+                            Specialized domain for intelligence processing.
+                        </small>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill"></i> 
+                            Intelligence processing uses advanced AI models to analyze content.
+                            This may increase processing time and resource usage.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <h5>Advanced Settings</h5>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="store_raw_intelligence" name="store_raw_intelligence" 
+                                 {% if config.intelligence_config and config.intelligence_config.get('store_raw_intelligence') %}checked{% endif %}>
+                            <label class="form-check-label" for="store_raw_intelligence">Store Raw Intelligence Data</label>
+                        </div>
+                        <small class="text-muted">
+                            Store detailed intelligence results. Increases database size but provides more data for analysis.
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a href="{{ url_for('api.configuration') }}" class="btn btn-secondary me-md-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Intelligence Configuration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5 class="card-title mb-0">Intelligence Components Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="bi bi-cpu"></i> Classification Pipeline</h6>
+                    <div id="classification_status" class="mb-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        Checking status...
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h6><i class="bi bi-tags"></i> Entity Extraction Pipeline</h6>
+                    <div id="entity_status" class="mb-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        Checking status...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-secondary mt-2">
+                <small>
+                    <strong>Note:</strong> Intelligence components are loaded on-demand when processing content.
+                    Status checks only verify that the components can be initialized.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Check intelligence components status
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/api/intelligence/status')
+            .then(response => response.json())
+            .then(data => {
+                // Update classification status
+                const classificationStatus = document.getElementById('classification_status');
+                if (data.classification_available) {
+                    classificationStatus.innerHTML = '<span class="badge bg-success">Available</span> Classification pipeline ready';
+                } else {
+                    classificationStatus.innerHTML = '<span class="badge bg-danger">Unavailable</span> ' + data.classification_message;
+                }
+                
+                // Update entity extraction status
+                const entityStatus = document.getElementById('entity_status');
+                if (data.entity_extraction_available) {
+                    entityStatus.innerHTML = '<span class="badge bg-success">Available</span> Entity extraction pipeline ready';
+                } else {
+                    entityStatus.innerHTML = '<span class="badge bg-danger">Unavailable</span> ' + data.entity_extraction_message;
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching intelligence status:', error);
+                document.getElementById('classification_status').innerHTML = 
+                    '<span class="badge bg-warning">Unknown</span> Could not check status';
+                document.getElementById('entity_status').innerHTML = 
+                    '<span class="badge bg-warning">Unknown</span> Could not check status';
+            });
+    });
+</script>
+{% endblock %}
+{% endblock %}

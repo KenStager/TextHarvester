@@ -306,9 +306,15 @@ class WebCrawler:
                         else:
                             self.domain_quality_scores[domain] = (quality_score, 1)
                             
+                    # For extended depth analysis, also store domain average
+                    domain_avg_score = self.domain_quality_scores.get(domain, (0.5, 0))[0] if domain else None
+                        
                     logger.debug(f"Page quality for {url}: {quality_score:.2f} (word count: {quality_metrics.get('word_count', 0)})")
                 except Exception as e:
                     logger.warning(f"Error evaluating page quality for {url}: {str(e)}")
+                    quality_score = 0.5
+                    quality_metrics = {}
+                    domain_avg_score = None
                 
                 # Calculate processing time in milliseconds
                 processing_time = int((time.time() - start_time) * 1000)
@@ -348,6 +354,30 @@ class WebCrawler:
                         )
                         
                         db.session.add(metadata)
+                        
+                        # Add quality metrics if available
+                        try:
+                            from models import ContentQualityMetrics
+                            
+                            # Check if ContentQualityMetrics table exists
+                            from sqlalchemy import inspect
+                            quality_metrics_exists = inspect(db.engine).has_table("content_quality_metrics")
+                            
+                            if quality_metrics_exists:
+                                quality_metrics_record = ContentQualityMetrics(
+                                    content_id=content.id,
+                                    quality_score=quality_score,
+                                    word_count=quality_metrics.get('word_count'),
+                                    paragraph_count=quality_metrics.get('paragraph_count'),
+                                    text_ratio=quality_metrics.get('text_ratio'),
+                                    domain=domain,
+                                    domain_avg_score=domain_avg_score,
+                                    parent_url=self.url_parents.get(url)
+                                )
+                                
+                                db.session.add(quality_metrics_record)
+                        except Exception as e:
+                            logger.warning(f"Could not store quality metrics: {e}")
                         db.session.commit()
                 except Exception as db_error:
                     logger.warning(f"Database error in fetch_url, attempting rollback: {str(db_error)}")
@@ -384,6 +414,30 @@ class WebCrawler:
                             )
                             
                             db.session.add(metadata)
+                            
+                            # Add quality metrics if available
+                            try:
+                                from models import ContentQualityMetrics
+                                
+                                # Check if ContentQualityMetrics table exists
+                                from sqlalchemy import inspect
+                                quality_metrics_exists = inspect(db.engine).has_table("content_quality_metrics")
+                                
+                                if quality_metrics_exists:
+                                    quality_metrics_record = ContentQualityMetrics(
+                                        content_id=content.id,
+                                        quality_score=quality_score,
+                                        word_count=quality_metrics.get('word_count'),
+                                        paragraph_count=quality_metrics.get('paragraph_count'),
+                                        text_ratio=quality_metrics.get('text_ratio'),
+                                        domain=domain,
+                                        domain_avg_score=domain_avg_score,
+                                        parent_url=self.url_parents.get(url)
+                                    )
+                                    
+                                    db.session.add(quality_metrics_record)
+                            except Exception as e:
+                                logger.warning(f"Could not store quality metrics in retry block: {e}")
                             
                             # Only commit the content and metadata
                             db.session.commit()
@@ -768,11 +822,28 @@ class WebCrawler:
             bool: True if should crawl beyond standard depth, False otherwise
         """
         try:
-            # Never exceed absolute maximum (standard + 2)
+            # Check if intelligent navigation is enabled in configuration
             if not hasattr(self, 'configuration') or not self.configuration:
                 return False
                 
-            absolute_max = self.configuration.max_depth + 2
+            # Check if the configuration has the new intelligent navigation attributes
+            # If not, use the default values
+            intelligent_navigation_enabled = True  # Default is enabled
+            if hasattr(self.configuration, 'enable_intelligent_navigation'):
+                intelligent_navigation_enabled = self.configuration.enable_intelligent_navigation
+                
+            # If intelligent navigation is disabled, only crawl to standard depth
+            if not intelligent_navigation_enabled:
+                return current_depth < self.configuration.max_depth
+                
+            # Get max extended depth - default to 2 if not in configuration
+            max_extended_depth = 2
+            if hasattr(self.configuration, 'max_extended_depth'):
+                max_extended_depth = self.configuration.max_extended_depth
+            
+            absolute_max = self.configuration.max_depth + max_extended_depth
+            
+            # Never exceed absolute maximum
             if current_depth >= absolute_max:
                 return False
                 
@@ -780,13 +851,18 @@ class WebCrawler:
             if current_depth < self.configuration.max_depth:
                 return True
             
+            # Get quality threshold - default to 0.7 if not in configuration
+            quality_threshold = 0.7
+            if hasattr(self.configuration, 'quality_threshold'):
+                quality_threshold = self.configuration.quality_threshold
+            
             # Beyond standard depth - apply quality heuristics
             
             # 1. Check parent quality
             parent_url = self.url_parents.get(url)
             if parent_url:
                 parent_quality = self.page_quality_scores.get(parent_url, 0.5)
-                if parent_quality > 0.75:
+                if parent_quality > quality_threshold:
                     logger.info(f"Extending depth for URL {url} due to high-quality parent: {parent_quality:.2f}")
                     return True
             
@@ -794,7 +870,7 @@ class WebCrawler:
             domain = get_domain_from_url(url)
             if domain in self.domain_quality_scores:
                 domain_quality, _ = self.domain_quality_scores[domain]
-                if domain_quality > 0.7:
+                if domain_quality > quality_threshold:
                     logger.info(f"Extending depth for URL {url} due to high-quality domain: {domain_quality:.2f}")
                     return True
             
@@ -819,7 +895,8 @@ class WebCrawler:
                 # Score the link
                 try:
                     link_score = self.link_intelligence.score_link(url, context, parent_url)
-                    if link_score > 0.8:
+                    # Use a slightly higher threshold for link scores
+                    if link_score > quality_threshold + 0.1: 
                         logger.info(f"Extending depth for URL {url} due to promising link score: {link_score:.2f}")
                         return True
                 except Exception as e:
