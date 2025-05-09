@@ -148,8 +148,59 @@ class CustomNERModel:
         """Create default patterns based on domain."""
         if self.domain == "football":
             self._create_football_patterns()
+        elif self.domain == "general":
+            self._create_general_patterns()
         else:
             logger.warning(f"No default patterns available for domain: {self.domain}")
+    
+    def _create_general_patterns(self) -> None:
+        """Create general-purpose NER patterns."""
+        patterns = [
+            # Organizations
+            {"label": "ORG", "pattern": "Google"},
+            {"label": "ORG", "pattern": "Microsoft"},
+            {"label": "ORG", "pattern": "Apple"},
+            {"label": "ORG", "pattern": "Facebook"},
+            {"label": "ORG", "pattern": "Amazon"},
+            {"label": "ORG", "pattern": "Netflix"},
+            {"label": "ORG", "pattern": "Tesla"},
+            {"label": "ORG", "pattern": "Twitter"},
+            {"label": "ORG", "pattern": "IBM"},
+            {"label": "ORG", "pattern": "Intel"},
+            
+            # People
+            {"label": "PERSON", "pattern": "Tim Cook"},
+            {"label": "PERSON", "pattern": "Elon Musk"},
+            {"label": "PERSON", "pattern": "Satya Nadella"},
+            {"label": "PERSON", "pattern": "Jeff Bezos"},
+            {"label": "PERSON", "pattern": "Mark Zuckerberg"},
+            
+            # Products
+            {"label": "PRODUCT", "pattern": "iPhone"},
+            {"label": "PRODUCT", "pattern": "iPad"},
+            {"label": "PRODUCT", "pattern": "MacBook"},
+            {"label": "PRODUCT", "pattern": "Windows"},
+            {"label": "PRODUCT", "pattern": "Android"},
+            
+            # Locations
+            {"label": "GPE", "pattern": "New York"},
+            {"label": "GPE", "pattern": "London"},
+            {"label": "GPE", "pattern": "San Francisco"},
+            {"label": "GPE", "pattern": "Tokyo"},
+            {"label": "GPE", "pattern": "Berlin"},
+            {"label": "GPE", "pattern": "Paris"},
+            
+            # Events
+            {"label": "EVENT", "pattern": "World Cup"},
+            {"label": "EVENT", "pattern": "Olympics"},
+            {"label": "EVENT", "pattern": "Super Bowl"},
+            {"label": "EVENT", "pattern": "Grammy Awards"},
+            {"label": "EVENT", "pattern": "Oscar Awards"}
+        ]
+        
+        # Add patterns to entity ruler
+        self.entity_ruler.add_patterns(patterns)
+        logger.info(f"Added {len(patterns)} general patterns")
     
     def _create_football_patterns(self) -> None:
         """Create football-specific NER patterns."""

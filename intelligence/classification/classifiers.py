@@ -60,6 +60,67 @@ class ClassificationResult:
             result["children"] = [child.to_dict() for child in self.children]
             
         return result
+            
+    @classmethod
+    def create_default_for_domain(cls, domain: str = "general", confidence: float = 0.7) -> 'ClassificationResult':
+        """Create a default classification result for a domain."""
+        domain_defaults = {
+            "football": {
+                "id": "football_news",
+                "name": "Football News",
+                "children": [
+                    {"id": "match_report", "name": "Match Report", "confidence": 0.6},
+                    {"id": "team_news", "name": "Team News", "confidence": 0.5}
+                ]
+            },
+            "technology": {
+                "id": "technology_news",
+                "name": "Technology News",
+                "children": [
+                    {"id": "product_news", "name": "Product News", "confidence": 0.6},
+                    {"id": "company_news", "name": "Company News", "confidence": 0.5}
+                ]
+            },
+            "business": {
+                "id": "business_news",
+                "name": "Business News",
+                "children": [
+                    {"id": "market_news", "name": "Market News", "confidence": 0.6},
+                    {"id": "company_reports", "name": "Company Reports", "confidence": 0.5}
+                ]
+            },
+            "general": {
+                "id": "general_news",
+                "name": "General News",
+                "children": [
+                    {"id": "current_events", "name": "Current Events", "confidence": 0.6},
+                    {"id": "feature_article", "name": "Feature Article", "confidence": 0.5}
+                ]
+            }
+        }
+        
+        # Get default for domain or fall back to general
+        default = domain_defaults.get(domain.lower(), domain_defaults["general"])
+        
+        # Create children
+        children = []
+        for child in default["children"]:
+            child_result = cls(
+                node_id=child["id"],
+                node_name=child["name"],
+                confidence=child["confidence"],
+                is_primary=False
+            )
+            children.append(child_result)
+        
+        # Create main result
+        return cls(
+            node_id=default["id"],
+            node_name=default["name"],
+            confidence=confidence,
+            is_primary=True,
+            children=children
+        )
 
 
 class TopicClassifier:

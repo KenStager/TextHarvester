@@ -219,8 +219,18 @@ class IntelligenceProcessor:
         Returns:
             True if successful, False otherwise
         """
-        from app import db
-        from models_update import ContentClassification  # Import from models_update
+        try:
+            # Try import with correct module path
+            from TextHarvester.app import db
+            from TextHarvester.models_update import ContentClassification
+        except ImportError:
+            try:
+                # Fallback for direct imports
+                from app import db
+                from models_update import ContentClassification
+            except ImportError:
+                logger.error("Could not import database modules - database operations disabled")
+                return False
         
         try:
             # Create classification record
@@ -256,8 +266,18 @@ class IntelligenceProcessor:
         Returns:
             True if successful, False otherwise
         """
-        from app import db
-        from models_update import ContentEntity  # Import from models_update
+        try:
+            # Try import with correct module path
+            from TextHarvester.app import db
+            from TextHarvester.models_update import ContentEntity
+        except ImportError:
+            try:
+                # Fallback for direct imports
+                from app import db
+                from models_update import ContentEntity
+            except ImportError:
+                logger.error("Could not import database modules - database operations disabled")
+                return False
         
         try:
             entity_records = []

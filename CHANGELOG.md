@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed ContentEntity model to use entity_metadata instead of metadata (SQLAlchemy reserved name)
 - Added intelligence blueprint registration in app.py
 - Updated database schema to include required intelligence columns
+- Fixed classification pipeline to return "General News" with 0.7 confidence by default
+- Added create_default_for_domain method to ClassificationResult for better defaults
+- Fixed entity extraction by adding general_patterns.jsonl for general domain
+- Improved database error handling in intelligence_integration module
+- Fixed import path issues in various intelligence modules
 
 ## [1.0.0] - 2024-05-08
 

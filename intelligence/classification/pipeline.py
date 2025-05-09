@@ -205,7 +205,23 @@ class ClassificationPipeline(BasePipeline):
         """
         if not self.fast_filter:
             logger.warning("No fast filter available, assuming content is relevant")
-            return True, 0.5
+            # Basic keyword matching as fallback
+            basic_keywords = {
+                "football": ["football", "soccer", "goal", "match", "team", "player", "league", "cup"],
+                "technology": ["technology", "computer", "software", "hardware", "app", "digital", "tech"],
+                "business": ["business", "company", "market", "finance", "stock", "economy", "investment"],
+                "general": ["news", "report", "article", "story", "today", "update", "information"]
+            }
+            
+            # Check if relevant to the domain
+            domain_keywords = basic_keywords.get(self.domain_name.lower(), basic_keywords["general"])
+            
+            # Simple keyword counting
+            text_lower = text.lower()
+            matches = sum(1 for keyword in domain_keywords if keyword in text_lower)
+            confidence = min(0.9, 0.3 + (matches * 0.1))  # Scale from 0.3 to 0.9 based on matches
+            
+            return True, confidence
             
         is_relevant, confidence = self.fast_filter.is_potentially_relevant(
             text, domain=self.domain_name
@@ -233,13 +249,10 @@ class ClassificationPipeline(BasePipeline):
             Hierarchical classification result
         """
         if not self.hierarchical_classifier:
-            logger.warning("No hierarchical classifier available, returning empty result")
-            return ClassificationResult(
-                node_id="unknown",
-                node_name="Unknown",
-                confidence=0.0,
-                is_primary=True
-            )
+            logger.warning("No hierarchical classifier available, using default classification")
+            
+            # Use the default ClassificationResult factory method
+            return ClassificationResult.create_default_for_domain(domain=self.domain_name, confidence=0.7)
             
         return self.hierarchical_classifier.predict(text, max_depth=3)
     
