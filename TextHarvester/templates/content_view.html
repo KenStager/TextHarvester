@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Content View - {{ content.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('api.index') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('api.job_status', job_id=content.job_id) }}">Job #{{ content.job_id }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('api.view_job_content', job_id=content.job_id) }}">Content</a></li>
+            <li class="breadcrumb-item active">View Content</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary bg-opacity-25">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="card-title">Content #{{ content.id }}</h2>
+                <a href="{{ url_for('api.view_job_content', job_id=content.job_id) }}" class="btn btn-outline-secondary">
+                    Back to Content List
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <h4>{{ content.title or "Untitled Content" }}</h4>
+                <p>
+                    <strong>URL:</strong> <a href="{{ content.url }}" target="_blank">{{ content.url }}</a>
+                </p>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Metadata</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table">
+                                <tbody>
+                                    <tr>
+                                        <th>Crawl Depth:</th>
+                                        <td>{{ content.crawl_depth }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Processing Time:</th>
+                                        <td>{{ content.processing_time }} ms</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Date Scraped:</th>
+                                        <td>{{ content.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Content Size:</th>
+                                        <td>{{ content.extracted_text|length }} characters</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Intelligence Features</h5>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <div class="mb-3">
+                                <strong>Classification:</strong>
+                                {% if has_classification %}
+                                <span class="badge bg-success">Available</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Not Available</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <strong>Entity Extraction:</strong>
+                                {% if has_entities %}
+                                <span class="badge bg-success">{{ entity_count }} Entities Available</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Not Available</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mt-auto">
+                                {% if has_classification %}
+                                <a href="{{ url_for('intelligence.view_content_classification', content_id=content.id) }}" class="btn btn-primary mb-2 w-100">
+                                    <i class="bi bi-clipboard-data"></i> View Classification
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('intelligence.analyze_content', content_id=content.id) }}" class="btn btn-outline-primary mb-2 w-100">
+                                    <i class="bi bi-magic"></i> Analyze Content
+                                </a>
+                                {% endif %}
+                                
+                                {% if has_entities %}
+                                <a href="{{ url_for('intelligence.view_content_entities', content_id=content.id) }}" class="btn btn-primary w-100">
+                                    <i class="bi bi-tags"></i> View {{ entity_count }} Entities
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Extracted Text</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-dark text-light p-3 rounded" style="white-space: pre-wrap; max-height: 500px; overflow-y: auto;">{{ content.extracted_text }}</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

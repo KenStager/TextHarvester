@@ -40,7 +40,8 @@ TextHarvester is a web scraping platform designed to collect, process, and analy
 - **Interactive Dashboard**: Real-time monitoring of crawling jobs
 - **Content Exploration**: Browse, search, and analyze collected content
 - **Configuration Management**: Create and manage crawling configurations
-- **Visualization**: View and understand intelligence results
+- **Intelligence Dashboard**: Comprehensive visualization of classification and entity extraction results
+- **Content Intelligence**: View topic classifications and extracted entities for individual content items
 
 ## System Architecture
 
@@ -117,7 +118,11 @@ For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md).
    - Click "Start Job" on the configuration page
    - Monitor progress in real-time on the status page
 
-4. **Export Results**
+4. **View Intelligence Results**
+   - Navigate to the Intelligence dashboard to see classification and entity extraction results
+   - View detailed classifications and entities for individual content items
+
+5. **Export Results**
    - Once complete, export data in JSONL format
    - Use for analysis, annotation, or other downstream tasks
 
@@ -145,6 +150,7 @@ For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md).
 - [docs/components/rust_extractor.md](docs/components/rust_extractor.md): Rust content extraction engine
 - [docs/features/intelligent_navigation.md](docs/features/intelligent_navigation.md): Quality-based crawling system
 - [docs/database.md](docs/database.md): Database schema and design
+- [docs/dashboard/intelligence_visualization.md](docs/dashboard/intelligence_visualization.md): Intelligence dashboard and visualization
 
 ## Components
 

@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}Entities - {{ content.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('api.index') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('api.job_status', job_id=content.job_id) }}">Job #{{ content.job_id }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('api.view_content', content_id=content.id) }}">Content #{{ content.id }}</a></li>
+            <li class="breadcrumb-item active">Entities</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary bg-opacity-25">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="card-title">Extracted Entities</h2>
+                <a href="{{ url_for('api.view_content', content_id=content.id) }}" class="btn btn-outline-secondary">
+                    Back to Content
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <h4>{{ content.title or "Untitled Content" }}</h4>
+                    <p class="text-muted">{{ content.url }}</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="badge bg-info p-2">
+                        <i class="bi bi-card-list"></i> {{ entities|length }} entities detected
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h5>Entity Types</h5>
+                <div class="btn-group mb-3" role="group">
+                    <button type="button" class="btn btn-outline-primary active entity-filter" data-type="all">All</button>
+                    {% for entity_type in entity_types.keys() %}
+                    <button type="button" class="btn btn-outline-primary entity-filter" data-type="{{ entity_type }}">
+                        {{ entity_type }} ({{ entity_types[entity_type]|length }})
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Entities List</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Entity</th>
+                                            <th>Confidence</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for entity in entities %}
+                                        <tr class="entity-row" data-entity-type="{{ entity.entity_type }}" data-start="{{ entity.start_char }}" data-end="{{ entity.end_char }}">
+                                            <td>
+                                                <span class="badge 
+                                                    {% if entity.entity_type == 'PERSON' %}bg-primary
+                                                    {% elif entity.entity_type == 'ORG' %}bg-success
+                                                    {% elif entity.entity_type == 'GPE' or entity.entity_type == 'LOC' %}bg-warning
+                                                    {% elif entity.entity_type == 'DATE' or entity.entity_type == 'TIME' %}bg-info
+                                                    {% else %}bg-secondary{% endif %}
+                                                ">
+                                                    {{ entity.entity_type }}
+                                                </span>
+                                            </td>
+                                            <td>{{ entity.entity_text }}</td>
+                                            <td>
+                                                <div class="progress" style="width: 100px;">
+                                                    <div class="progress-bar" role="progressbar" 
+                                                         style="width: {{ entity.confidence * 100 }}%" 
+                                                         aria-valuenow="{{ entity.confidence * 100 }}" 
+                                                         aria-valuemin="0" 
+                                                         aria-valuemax="100">
+                                                        {{ (entity.confidence * 100)|round|int }}%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Text with Highlighted Entities</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="highlighted-text" class="p-3 bg-light" style="white-space: pre-wrap; overflow-y: auto; max-height: 500px;">
+                                <!-- Text will be populated by JavaScript -->
+                                Loading content...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if entity_types %}
+            <div class="row">
+                {% for entity_type, entities_list in entity_types.items() %}
+                <div class="col-md-4 mb-4 entity-type-section" data-type="{{ entity_type }}">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <span class="badge 
+                                    {% if entity_type == 'PERSON' %}bg-primary
+                                    {% elif entity_type == 'ORG' %}bg-success
+                                    {% elif entity_type == 'GPE' or entity_type == 'LOC' %}bg-warning
+                                    {% elif entity_type == 'DATE' or entity_type == 'TIME' %}bg-info
+                                    {% else %}bg-secondary{% endif %}
+                                ">
+                                    {{ entity_type }}
+                                </span>
+                                {{ entities_list|length }} entities
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group">
+                                {% for entity in entities_list %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {{ entity.entity_text }}
+                                    <span class="badge bg-primary rounded-pill">{{ (entity.confidence * 100)|round|int }}%</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get content text
+        const text = {{ content.extracted_text|tojson }};
+        const highlightedTextElement = document.getElementById('highlighted-text');
+        
+        // Create a function to highlight entities
+        function highlightEntities(entityType = 'all') {
+            // Get all entities
+            const entityRows = document.querySelectorAll('.entity-row');
+            
+            // Collect entity positions
+            const entities = [];
+            entityRows.forEach(row => {
+                const type = row.getAttribute('data-entity-type');
+                const start = parseInt(row.getAttribute('data-start'));
+                const end = parseInt(row.getAttribute('data-end'));
+                
+                if (entityType === 'all' || type === entityType) {
+                    entities.push({
+                        type: type,
+                        start: start,
+                        end: end
+                    });
+                }
+            });
+            
+            // Sort entities by start position (in reverse order to avoid position shifts)
+            entities.sort((a, b) => b.start - a.start);
+            
+            // Create a copy of the text
+            let highlightedText = text;
+            
+            // Insert highlight markers
+            entities.forEach(entity => {
+                const colorClass = 
+                    entity.type === 'PERSON' ? 'primary' :
+                    entity.type === 'ORG' ? 'success' :
+                    (entity.type === 'GPE' || entity.type === 'LOC') ? 'warning' :
+                    (entity.type === 'DATE' || entity.type === 'TIME') ? 'info' :
+                    'secondary';
+                
+                const highlightStart = `<span class="badge bg-${colorClass}" title="${entity.type}">`;
+                const highlightEnd = '</span>';
+                
+                highlightedText = 
+                    highlightedText.substring(0, entity.start) +
+                    highlightStart + 
+                    highlightedText.substring(entity.start, entity.end) + 
+                    highlightEnd +
+                    highlightedText.substring(entity.end);
+            });
+            
+            // Update the highlighted text element
+            highlightedTextElement.innerHTML = highlightedText;
+        }
+        
+        // Initial highlight
+        highlightEntities();
+        
+        // Set up filter buttons
+        const filterButtons = document.querySelectorAll('.entity-filter');
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Get entity type
+                const entityType = this.getAttribute('data-type');
+                
+                // Update entity type sections visibility
+                const entityTypeSections = document.querySelectorAll('.entity-type-section');
+                entityTypeSections.forEach(section => {
+                    if (entityType === 'all' || section.getAttribute('data-type') === entityType) {
+                        section.style.display = 'block';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+                
+                // Update entity rows visibility
+                const entityRows = document.querySelectorAll('.entity-row');
+                entityRows.forEach(row => {
+                    if (entityType === 'all' || row.getAttribute('data-entity-type') === entityType) {
+                        row.style.display = 'table-row';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // Highlight entities
+                highlightEntities(entityType);
+            });
+        });
+    });
+</script>
+{% endblock %}

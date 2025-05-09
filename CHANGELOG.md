@@ -13,7 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configuration options for intelligence features
 - API endpoints for managing intelligence features
 - UI for intelligence configuration
-- Documentation for intelligence integration
+- Comprehensive Intelligence Dashboard with visualization
+- Content classification visualization with confidence scores
+- Entity extraction visualization with filtering and highlighting
+- Integration of intelligence indicators in content views
+- Enhanced job statistics with intelligence metrics
+- Documentation for intelligence visualization
 
 ## [1.0.0] - 2024-05-08
 

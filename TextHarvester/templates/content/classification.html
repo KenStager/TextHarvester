@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Classification - {{ content.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('api.index') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('api.job_status', job_id=content.job_id) }}">Job #{{ content.job_id }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('api.view_content', content_id=content.id) }}">Content #{{ content.id }}</a></li>
+            <li class="breadcrumb-item active">Classification</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary bg-opacity-25">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="card-title">Content Classification</h2>
+                <a href="{{ url_for('api.view_content', content_id=content.id) }}" class="btn btn-outline-secondary">
+                    Back to Content
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <h4>{{ content.title or "Untitled Content" }}</h4>
+                    <p class="text-muted">{{ content.url }}</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="badge bg-info p-2">
+                        <i class="bi bi-clock"></i> Processed in {{ classification.processing_time|round(2) }} seconds
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Primary Topic</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <h3 class="mb-0">{{ classification.primary_topic }}</h3>
+                                <span class="badge bg-primary ms-2">{{ (classification.primary_topic_confidence * 100)|round|int }}%</span>
+                            </div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ classification.primary_topic_confidence * 100 }}%" 
+                                     aria-valuenow="{{ classification.primary_topic_confidence * 100 }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                            {% if classification.primary_topic_id %}
+                            <div class="text-muted mt-2">ID: {{ classification.primary_topic_id }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Overall Assessment</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong>Relevance:</strong>
+                                {% if classification.is_relevant %}
+                                <span class="badge bg-success">Relevant</span>
+                                {% else %}
+                                <span class="badge bg-warning">Not Relevant</span>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <strong>Confidence:</strong>
+                                <div class="progress mt-1">
+                                    <div class="progress-bar {% if classification.confidence > 0.8 %}bg-success{% elif classification.confidence > 0.5 %}bg-info{% else %}bg-warning{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ classification.confidence * 100 }}%" 
+                                         aria-valuenow="{{ classification.confidence * 100 }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ (classification.confidence * 100)|round|int }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Subtopics</h5>
+                </div>
+                <div class="card-body">
+                    {% if classification.subtopics and classification.subtopics|length > 0 %}
+                    <div class="row">
+                        {% for subtopic in classification.subtopics %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <h5 class="mb-0">{{ subtopic.name }}</h5>
+                                <span class="badge bg-secondary ms-2">{{ (subtopic.confidence * 100)|round|int }}%</span>
+                            </div>
+                            <div class="progress mt-1" style="height: 5px;">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ subtopic.confidence * 100 }}%" 
+                                     aria-valuenow="{{ subtopic.confidence * 100 }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                            {% if subtopic.id %}
+                            <div class="text-muted small mt-1">ID: {{ subtopic.id }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No subtopics detected for this content.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

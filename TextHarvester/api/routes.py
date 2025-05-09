@@ -316,6 +316,39 @@ def job_status(job_id):
 @api_bp.route('/content/<int:job_id>', methods=['GET'])
 def view_job_content(job_id):
     """View content scraped by a specific job with pagination"""
+
+@api_bp.route('/content/view/<int:content_id>', methods=['GET'])
+def view_content(content_id):
+    """View a specific content item with intelligence data"""
+    content = ScrapedContent.query.get_or_404(content_id)
+    
+    # Check for intelligence data
+    has_classification = False
+    has_entities = False
+    entity_count = 0
+    
+    try:
+        # Check for classification
+        from models_update import ContentClassification
+        classification = ContentClassification.query.filter_by(content_id=content_id).first()
+        has_classification = classification is not None
+        
+        # Check for entities
+        from models_update import ContentEntity
+        entity_count = ContentEntity.query.filter_by(content_id=content_id).count()
+        has_entities = entity_count > 0
+    except Exception as e:
+        logger.warning(f"Error checking intelligence data: {e}")
+    
+    return render_template('content_view.html', 
+                          content=content, 
+                          has_classification=has_classification,
+                          has_entities=has_entities,
+                          entity_count=entity_count)
+
+@api_bp.route('/content/<int:job_id>', methods=['GET'])
+def view_job_content(job_id):
+    """View content scraped by a specific job with pagination"""
     job = ScrapingJob.query.get_or_404(job_id)
     
     # Get pagination parameters

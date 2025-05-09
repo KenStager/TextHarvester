@@ -390,13 +390,78 @@
                         </div>
                         {% endif %}
                         
-                        {% if analytics and analytics.get('intelligent_navigation') %}
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <h4>
-                                    <i class="bi bi-bezier2"></i> Intelligent Navigation Stats
-                                    <span class="badge bg-info ms-2">New</span>
-                                </h4>
+                        {% if analytics.get('classification') or analytics.get('entities') %}
+<div class="card mb-4">
+    <div class="card-header bg-info bg-opacity-25">
+        <h5 class="card-title">Intelligence Insights</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Classification Stats</div>
+                    <div class="card-body">
+                        {% if analytics.classification and analytics.classification.topic_distribution %}
+                            <h6>Topics Distribution</h6>
+                            <div class="chart-container">
+                                <canvas id="topicsChart"></canvas>
+                            </div>
+                            <div class="mt-3">
+                                <strong>Top topics:</strong>
+                                <ul>
+                                {% for topic, count in analytics.classification.topic_distribution.items() %}
+                                    {% if loop.index <= 5 %}
+                                    <li>{{ topic }}: {{ count }} documents</li>
+                                    {% endif %}
+                                {% endfor %}
+                                </ul>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> No classification data available. Enable classification in job configuration.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Entity Extraction Stats</div>
+                    <div class="card-body">
+                        {% if analytics.entities and analytics.entities.entity_types %}
+                            <h6>Entity Types Distribution</h6>
+                            <div class="chart-container">
+                                <canvas id="entitiesChart"></canvas>
+                            </div>
+                            <div class="mt-3">
+                                <strong>Entity counts by type:</strong>
+                                <ul>
+                                {% for entity_type, count in analytics.entities.entity_types.items() %}
+                                    <li>{{ entity_type }}: {{ count }} entities</li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> No entity data available. Enable entity extraction in job configuration.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if analytics and analytics.get('intelligent_navigation') %}
+<div class="row mb-4">
+<div class="col-12">
+<h4>
+<i class="bi bi-bezier2"></i> Intelligent Navigation Stats
+<span class="badge bg-info ms-2">New</span>
+</h4>
                                 <div class="card">
                                     <div class="card-body">
                                         <div class="row g-4 mb-4">
@@ -866,6 +931,71 @@
             });
             {% endif %}
         });
+        
+        // Intelligence Charts
+        {% if analytics.get('classification') and analytics.classification.topic_distribution %}
+        // Topics Distribution Chart
+        const topicsLabels = {{ analytics.classification.topic_distribution.keys()|list|tojson }};
+        const topicsData = {{ analytics.classification.topic_distribution.values()|list|tojson }};
+        
+        new Chart(document.getElementById('topicsChart'), {
+            type: 'doughnut',
+            data: {
+                labels: topicsLabels,
+                datasets: [{
+                    data: topicsData,
+                    backgroundColor: colors
+                }]
+            },
+            options: {
+                ...chartOptions,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Topic Distribution'
+                    }
+                }
+            }
+        });
+        {% endif %}
+        
+        {% if analytics.get('entities') and analytics.entities.entity_types %}
+        // Entity Types Chart
+        const entityTypeLabels = {{ analytics.entities.entity_types.keys()|list|tojson }};
+        const entityTypeData = {{ analytics.entities.entity_types.values()|list|tojson }};
+        
+        new Chart(document.getElementById('entitiesChart'), {
+            type: 'bar',
+            data: {
+                labels: entityTypeLabels,
+                datasets: [{
+                    label: 'Entity Count',
+                    data: entityTypeData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...chartOptions,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Entity Type Distribution'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Count'
+                        }
+                    }
+                }
+            }
+        });
+        {% endif %}
     </script>
     {% endif %}
 </body>

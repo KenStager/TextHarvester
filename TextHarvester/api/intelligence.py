@@ -7,6 +7,7 @@ including configuration, status checks, and content analysis.
 
 import logging
 import json
+from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash
 
 from app import db
@@ -189,6 +190,122 @@ def view_content_classification(content_id):
         return redirect(url_for('api.view_content', content_id=content_id))
     
     return render_template('content/classification.html', content=content, classification=classification)
+
+@intelligence_bp.route('/overview', methods=['GET'])
+def intelligence_overview():
+    """Show intelligence overview dashboard."""
+    # Calculate intelligence statistics
+    total_classification = db.session.query(ContentClassification).count()
+    total_entities = db.session.query(ContentEntity).count()
+    
+    # Get distinct domains
+    active_domains = db.session.query(db.func.count(db.func.distinct(ScrapingConfiguration.intelligence_domain)))\
+        .filter(ScrapingConfiguration.enable_classification == True)\
+        .scalar()
+    
+    stats = {
+        'total_classification': total_classification,
+        'total_entities': total_entities,
+        'active_domains': active_domains or 0
+    }
+    
+    # Get recent classifications
+    recent_classifications = ContentClassification.query\
+        .order_by(ContentClassification.created_at.desc())\
+        .limit(10).all()
+    
+    # Get recent entities
+    recent_entities = ContentEntity.query\
+        .order_by(ContentEntity.created_at.desc())\
+        .limit(10).all()
+    
+    # Get topic distribution data for chart
+    topics_query = db.session.query(
+        ContentClassification.primary_topic,
+        db.func.count(ContentClassification.id)
+    ).group_by(ContentClassification.primary_topic)\
+        .order_by(db.func.count(ContentClassification.id).desc())\
+        .limit(10).all()
+    
+    topics_data = {
+        'labels': [topic for topic, count in topics_query],
+        'values': [count for topic, count in topics_query]
+    }
+    
+    # Get entity types distribution data for chart
+    entities_query = db.session.query(
+        ContentEntity.entity_type,
+        db.func.count(ContentEntity.id)
+    ).group_by(ContentEntity.entity_type)\
+        .order_by(db.func.count(ContentEntity.id).desc())\
+        .all()
+    
+    entities_data = {
+        'labels': [entity_type for entity_type, count in entities_query],
+        'values': [count for entity_type, count in entities_query]
+    }
+    
+    # Get recent activity
+    recent_activity = []
+    
+    # Add recent classifications to activity
+    for classification in recent_classifications[:5]:
+        if hasattr(classification, 'content') and classification.content:
+            recent_activity.append({
+                'title': f"Classification: {classification.primary_topic}",
+                'description': f"Document: {classification.content.title or 'Untitled'}",
+                'details': f"Confidence: {classification.primary_topic_confidence:.0%}",
+                'time_ago': format_time_ago(classification.created_at)
+            })
+    
+    # Add recent entity extractions to activity
+    entity_docs = {}
+    for entity in recent_entities[:10]:
+        if entity.content_id not in entity_docs:
+            entity_docs[entity.content_id] = {
+                'title': entity.content.title if hasattr(entity, 'content') and entity.content else 'Untitled',
+                'count': 1,
+                'time': entity.created_at
+            }
+        else:
+            entity_docs[entity.content_id]['count'] += 1
+    
+    for doc_id, doc_info in list(entity_docs.items())[:5]:
+        recent_activity.append({
+            'title': f"Entity Extraction",
+            'description': f"Document: {doc_info['title']}",
+            'details': f"Extracted {doc_info['count']} entities",
+            'time_ago': format_time_ago(doc_info['time'])
+        })
+    
+    # Sort activity by time
+    recent_activity.sort(key=lambda x: x['time_ago'], reverse=True)
+    
+    return render_template('intelligence/overview.html',
+                          stats=stats,
+                          recent_classifications=recent_classifications,
+                          recent_entities=recent_entities,
+                          topics_data=topics_data,
+                          entities_data=entities_data,
+                          recent_activity=recent_activity)
+
+def format_time_ago(timestamp):
+    """Format a timestamp as a human-readable 'time ago' string."""
+    now = datetime.utcnow()
+    diff = now - timestamp
+    
+    seconds = diff.total_seconds()
+    
+    if seconds < 60:
+        return f"{int(seconds)} seconds ago"
+    elif seconds < 3600:
+        return f"{int(seconds / 60)} minutes ago"
+    elif seconds < 86400:
+        return f"{int(seconds / 3600)} hours ago"
+    elif seconds < 604800:
+        return f"{int(seconds / 86400)} days ago"
+    else:
+        return timestamp.strftime('%Y-%m-%d')
 
 def register_blueprint(app):
     """Register the intelligence blueprint with the Flask app."""

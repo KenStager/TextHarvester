@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+
+{% block title %}Intelligence Overview{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Intelligence Overview</h1>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary bg-opacity-25">
+                    <h5 class="card-title">Dashboard</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ stats.total_classification }}</h3>
+                                    <p class="text-muted mb-0">Classified Documents</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ stats.total_entities }}</h3>
+                                    <p class="text-muted mb-0">Extracted Entities</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 class="mb-0">{{ stats.active_domains }}</h3>
+                                    <p class="text-muted mb-0">Active Domains</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>Classification Insights</h5>
+                        <div class="chart-container">
+                            <canvas id="topicsOverviewChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h5>Entity Types</h5>
+                        <div class="chart-container">
+                            <canvas id="entityTypesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info bg-opacity-25">
+                    <h5 class="card-title">Components Status</h5>
+                </div>
+                <div class="card-body">
+                    <div id="classification_status" class="mb-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        Checking status...
+                    </div>
+                    
+                    <div id="entity_status" class="mb-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        Checking status...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-success bg-opacity-25">
+                    <h5 class="card-title">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for activity in recent_activity %}
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ activity.title }}</h6>
+                                <small>{{ activity.time_ago }}</small>
+                            </div>
+                            <p class="mb-1">{{ activity.description }}</p>
+                            <small>{{ activity.details }}</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-primary bg-opacity-25">
+            <h5 class="card-title">Recent Intelligence Results</h5>
+        </div>
+        <div class="card-body">
+            <ul class="nav nav-tabs mb-3" id="intelligenceTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="classifications-tab" data-bs-toggle="tab" data-bs-target="#classifications" type="button" role="tab">
+                        Classifications
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="entities-tab" data-bs-toggle="tab" data-bs-target="#entities" type="button" role="tab">
+                        Entities
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="intelligenceTabContent">
+                <div class="tab-pane fade show active" id="classifications" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Document</th>
+                                    <th>Primary Topic</th>
+                                    <th>Confidence</th>
+                                    <th>Processed</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in recent_classifications %}
+                                <tr>
+                                    <td>{{ item.id }}</td>
+                                    <td>
+                                        <span class="d-inline-block text-truncate" style="max-width: 200px;">
+                                            {{ item.content.title or "Untitled" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ item.primary_topic }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ item.primary_topic_confidence * 100 }}%" 
+                                                 aria-valuenow="{{ item.primary_topic_confidence * 100 }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ (item.primary_topic_confidence * 100)|round|int }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ item.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('intelligence.view_content_classification', content_id=item.content_id) }}" class="btn btn-sm btn-outline-primary">
+                                            View
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="entities" role="tabpanel">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Entity</th>
+                                    <th>Type</th>
+                                    <th>Document</th>
+                                    <th>Confidence</th>
+                                    <th>Detected</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in recent_entities %}
+                                <tr>
+                                    <td>{{ item.entity_text }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if item.entity_type == 'PERSON' %}bg-primary
+                                            {% elif item.entity_type == 'ORG' %}bg-success
+                                            {% elif item.entity_type == 'GPE' or item.entity_type == 'LOC' %}bg-warning
+                                            {% elif item.entity_type == 'DATE' or item.entity_type == 'TIME' %}bg-info
+                                            {% else %}bg-secondary{% endif %}
+                                        ">
+                                            {{ item.entity_type }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="d-inline-block text-truncate" style="max-width: 200px;">
+                                            {{ item.content.title or "Untitled" }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ item.confidence * 100 }}%" 
+                                                 aria-valuenow="{{ item.confidence * 100 }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                {{ (item.confidence * 100)|round|int }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ item.created_at.strftime('%Y-%m-%d') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block additional_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check intelligence components status
+        fetch('/api/intelligence/status')
+            .then(response => response.json())
+            .then(data => {
+                // Update classification status
+                const classificationStatus = document.getElementById('classification_status');
+                if (data.classification_available) {
+                    classificationStatus.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle-fill"></i> Classification pipeline ready</div>';
+                } else {
+                    classificationStatus.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle-fill"></i> ' + data.classification_message + '</div>';
+                }
+                
+                // Update entity extraction status
+                const entityStatus = document.getElementById('entity_status');
+                if (data.entity_extraction_available) {
+                    entityStatus.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle-fill"></i> Entity extraction pipeline ready</div>';
+                } else {
+                    entityStatus.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle-fill"></i> ' + data.entity_extraction_message + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching intelligence status:', error);
+                document.getElementById('classification_status').innerHTML = 
+                    '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill"></i> Could not check status</div>';
+                document.getElementById('entity_status').innerHTML = 
+                    '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill"></i> Could not check status</div>';
+            });
+            
+        // Charts
+        const topicsData = {{ topics_data|tojson }};
+        const entitiesData = {{ entities_data|tojson }};
+        
+        // Topics Overview Chart
+        const topicsCtx = document.getElementById('topicsOverviewChart').getContext('2d');
+        new Chart(topicsCtx, {
+            type: 'doughnut',
+            data: {
+                labels: topicsData.labels,
+                datasets: [{
+                    data: topicsData.values,
+                    backgroundColor: [
+                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                        '#6f42c1', '#20c9a6', '#5a5c69', '#858796', '#5a5c69'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+        
+        // Entity Types Chart
+        const entityTypesCtx = document.getElementById('entityTypesChart').getContext('2d');
+        new Chart(entityTypesCtx, {
+            type: 'bar',
+            data: {
+                labels: entitiesData.labels,
+                datasets: [{
+                    label: 'Entity Count',
+                    data: entitiesData.values,
+                    backgroundColor: '#36b9cc'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

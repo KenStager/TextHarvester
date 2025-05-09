@@ -27,6 +27,8 @@ The TextHarvester intelligence module currently provides:
    - Configurable per scraping job
    - Error isolation to prevent intelligence failures from affecting crawling
    - Lazy loading of intelligence components
+   - Comprehensive intelligence dashboard for visualization
+   - Content-level intelligence views for classification and entities
 
 ## Short-Term Roadmap (Next 3-6 Months)
 
