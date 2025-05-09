@@ -108,7 +108,7 @@ class Entity(db.Model):
     entity_type_id = db.Column(db.Integer, db.ForeignKey('entity_types.id'))
     canonical_name = db.Column(db.String(255))
     kb_id = db.Column(db.String(100))
-    metadata = db.Column(JSONB)
+    entity_metadata = db.Column(JSONB)  # Renamed from 'metadata' to avoid SQLAlchemy conflict
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -130,7 +130,7 @@ class Entity(db.Model):
             'entity_type_id': self.entity_type_id,
             'canonical_name': self.canonical_name,
             'kb_id': self.kb_id,
-            'metadata': self.metadata,
+            'metadata': self.entity_metadata,  # Use entity_metadata but keep key as 'metadata' for compatibility
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -202,7 +202,7 @@ class Entity(db.Model):
                 entity_type_id=entity_type_id,
                 canonical_name=canonical_name or name,
                 kb_id=kb_id,
-                metadata=metadata or {}
+                entity_metadata=metadata or {}  # Use entity_metadata instead of metadata
             )
             session.add(entity)
             session.flush()
@@ -318,7 +318,7 @@ class EntityRelationship(db.Model):
     target_entity_id = db.Column(db.Integer, db.ForeignKey('entities.id'))
     relationship_type = db.Column(db.String(100), nullable=False)
     confidence = db.Column(db.Float)
-    metadata = db.Column(JSONB)
+    relation_metadata = db.Column(JSONB)  # Renamed from 'metadata' to avoid SQLAlchemy conflict
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -339,7 +339,7 @@ class EntityRelationship(db.Model):
             'target_entity_id': self.target_entity_id,
             'relationship_type': self.relationship_type,
             'confidence': self.confidence,
-            'metadata': self.metadata,
+            'metadata': self.relation_metadata,  # Use relation_metadata but keep key as 'metadata' for compatibility
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
@@ -374,13 +374,13 @@ class EntityRelationship(db.Model):
         
         if not relationship:
             relationship = cls(
-                source_entity_id=source_entity_id,
-                target_entity_id=target_entity_id,
-                relationship_type=relationship_type,
-                confidence=confidence,
-                metadata=metadata or {},
-                start_date=start_date,
-                end_date=end_date
+            source_entity_id=source_entity_id,
+            target_entity_id=target_entity_id,
+            relationship_type=relationship_type,
+            confidence=confidence,
+            relation_metadata=metadata or {},  # Use relation_metadata instead of metadata
+            start_date=start_date,
+            end_date=end_date
             )
             session.add(relationship)
             session.flush()

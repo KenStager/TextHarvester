@@ -171,6 +171,122 @@ def clean_text(text: str, strip_html_tags: bool = True, normalize_spaces: bool =
     return text
 
 
+def normalize_text(text: str, remove_stopwords: bool = False, lemmatize: bool = False) -> str:
+    """
+    Normalize text for intelligence processing by:
+    1. Cleaning text (removing HTML, normalizing whitespace, etc.)
+    2. Optionally removing stopwords
+    3. Optionally lemmatizing words
+    
+    This function is used by various intelligence components to standardize
+    text input for classification and entity extraction.
+    
+    Args:
+        text (str): Input text to normalize
+        remove_stopwords (bool): Whether to remove stopwords
+        lemmatize (bool): Whether to lemmatize words
+        
+    Returns:
+        str: Normalized text
+    """
+    if not text:
+        return ""
+        
+    # Convert to string if needed
+    if not isinstance(text, str):
+        text = str(text)
+    
+    # Apply basic cleaning
+    text = clean_text(
+        text, 
+        strip_html_tags=True, 
+        normalize_spaces=True, 
+        normalize_chars=True, 
+        remove_specials=True,
+        lowercase=True
+    )
+    
+    # Apply spaCy-based processing if available and requested
+    if (remove_stopwords or lemmatize) and SPACY_AVAILABLE and nlp:
+        doc = nlp(text)
+        
+        if lemmatize and remove_stopwords:
+            # Both lemmatize and remove stopwords
+            tokens = [token.lemma_ for token in doc if not token.is_stop and token.lemma_.strip()]
+        elif lemmatize:
+            # Only lemmatize
+            tokens = [token.lemma_ for token in doc if token.lemma_.strip()]
+        else:
+            # Only remove stopwords
+            tokens = [token.text for token in doc if not token.is_stop and token.text.strip()]
+            
+        text = ' '.join(tokens)
+    
+    return text
+
+
+def extract_keywords(text: str, max_keywords: int = 10) -> list:
+    """
+    Extract key phrases and keywords from text using spaCy.
+    
+    This function analyzes the text to extract the most relevant keywords and phrases,
+    using named entities, noun chunks, and important parts of speech.
+    
+    Args:
+        text (str): Input text to extract keywords from
+        max_keywords (int): Maximum number of keywords to return
+        
+    Returns:
+        list: List of keywords/phrases
+    """
+    if not text:
+        return []
+        
+    # Check if spaCy is available
+    if not SPACY_AVAILABLE or not nlp:
+        # Fallback to simple word frequency
+        words = text.lower().split()
+        word_freq = {}
+        for word in words:
+            if len(word) > 3:  # Skip very short words
+                word_freq[word] = word_freq.get(word, 0) + 1
+        
+        # Sort by frequency and return top keywords
+        keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+        return [word for word, freq in keywords[:max_keywords]]
+    
+    # Use spaCy for better keyword extraction
+    doc = nlp(normalize_text(text))
+    
+    # Extract noun chunks and named entities
+    keywords = []
+    seen = set()
+    
+    # Add named entities
+    for ent in doc.ents:
+        if ent.text.lower() not in seen and len(ent.text.split()) <= 3:
+            keywords.append(ent.text.lower())
+            seen.add(ent.text.lower())
+    
+    # Add noun chunks
+    for chunk in doc.noun_chunks:
+        chunk_text = chunk.text.lower()
+        if chunk_text not in seen and len(chunk_text.split()) <= 3:
+            keywords.append(chunk_text)
+            seen.add(chunk_text)
+    
+    # Add important words based on part-of-speech
+    for token in doc:
+        if (token.pos_ in ("NOUN", "PROPN", "ADJ") and 
+            token.text.lower() not in seen and 
+            not token.is_stop and len(token.text) > 2):
+            keywords.append(token.text.lower())
+            seen.add(token.text.lower())
+    
+    # Return top keywords
+    return keywords[:max_keywords]
+
+
 def detect_language(text: str) -> str:
     """
     Detect the language of a text.

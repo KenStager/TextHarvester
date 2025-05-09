@@ -29,7 +29,7 @@ from .model_utils import (
     clear_model_cache,
     get_model_cache_info,
     with_model,
-    get_text_embeddings,
+    get_embeddings,
     get_tfidf_vectors,
     compute_similarity_matrix,
     ModelPerformanceTracker,
@@ -38,7 +38,8 @@ from .model_utils import (
     batched_inference,
     optimized_huggingface_inference,
     optimized_spacy_inference,
-    k_fold_cross_validate
+    k_fold_cross_validate,
+    get_model_path
 )
 
 # Conditionally import Prodigy integration if available

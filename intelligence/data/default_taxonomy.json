@@ -1,0 +1,89 @@
+{
+  "topics": [
+    {
+      "id": "general",
+      "name": "General",
+      "subtopics": [
+        {"id": "general_news", "name": "General News"},
+        {"id": "other", "name": "Other"}
+      ]
+    },
+    {
+      "id": "news",
+      "name": "News",
+      "subtopics": [
+        {"id": "politics", "name": "Politics"},
+        {"id": "world", "name": "World News"},
+        {"id": "local", "name": "Local News"},
+        {"id": "crime", "name": "Crime"},
+        {"id": "weather", "name": "Weather"}
+      ]
+    },
+    {
+      "id": "sports",
+      "name": "Sports",
+      "subtopics": [
+        {"id": "football", "name": "Football"},
+        {"id": "basketball", "name": "Basketball"},
+        {"id": "baseball", "name": "Baseball"},
+        {"id": "soccer", "name": "Soccer"},
+        {"id": "tennis", "name": "Tennis"},
+        {"id": "other_sports", "name": "Other Sports"}
+      ]
+    },
+    {
+      "id": "technology",
+      "name": "Technology",
+      "subtopics": [
+        {"id": "gadgets", "name": "Gadgets"},
+        {"id": "software", "name": "Software"},
+        {"id": "internet", "name": "Internet"},
+        {"id": "ai", "name": "Artificial Intelligence"},
+        {"id": "tech_news", "name": "Tech News"}
+      ]
+    },
+    {
+      "id": "entertainment",
+      "name": "Entertainment",
+      "subtopics": [
+        {"id": "movies", "name": "Movies"},
+        {"id": "music", "name": "Music"},
+        {"id": "tv", "name": "Television"},
+        {"id": "celebrities", "name": "Celebrities"},
+        {"id": "gaming", "name": "Gaming"}
+      ]
+    },
+    {
+      "id": "business",
+      "name": "Business",
+      "subtopics": [
+        {"id": "finance", "name": "Finance"},
+        {"id": "markets", "name": "Markets"},
+        {"id": "economy", "name": "Economy"},
+        {"id": "companies", "name": "Companies"},
+        {"id": "startups", "name": "Startups"}
+      ]
+    },
+    {
+      "id": "health",
+      "name": "Health",
+      "subtopics": [
+        {"id": "medicine", "name": "Medicine"},
+        {"id": "fitness", "name": "Fitness"},
+        {"id": "nutrition", "name": "Nutrition"},
+        {"id": "mental_health", "name": "Mental Health"}
+      ]
+    },
+    {
+      "id": "science",
+      "name": "Science",
+      "subtopics": [
+        {"id": "physics", "name": "Physics"},
+        {"id": "biology", "name": "Biology"},
+        {"id": "chemistry", "name": "Chemistry"},
+        {"id": "space", "name": "Space"},
+        {"id": "environment", "name": "Environment"}
+      ]
+    }
+  ]
+}

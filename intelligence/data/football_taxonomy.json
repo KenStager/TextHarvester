@@ -1,0 +1,61 @@
+{
+  "topics": [
+    {
+      "id": "football",
+      "name": "Football",
+      "subtopics": [
+        {
+          "id": "matches",
+          "name": "Matches",
+          "subtopics": [
+            {"id": "match_reports", "name": "Match Reports"},
+            {"id": "post_match_analysis", "name": "Post-Match Analysis"},
+            {"id": "pre_match_preview", "name": "Pre-Match Preview"},
+            {"id": "live_commentary", "name": "Live Commentary"}
+          ]
+        },
+        {
+          "id": "players",
+          "name": "Players",
+          "subtopics": [
+            {"id": "player_transfers", "name": "Player Transfers"},
+            {"id": "injuries", "name": "Injuries"},
+            {"id": "player_stats", "name": "Player Statistics"},
+            {"id": "player_interviews", "name": "Player Interviews"}
+          ]
+        },
+        {
+          "id": "teams",
+          "name": "Teams",
+          "subtopics": [
+            {"id": "team_news", "name": "Team News"},
+            {"id": "team_stats", "name": "Team Statistics"},
+            {"id": "team_transfers", "name": "Team Transfers"},
+            {"id": "coaching_staff", "name": "Coaching Staff"}
+          ]
+        },
+        {
+          "id": "leagues",
+          "name": "Leagues",
+          "subtopics": [
+            {"id": "premier_league", "name": "Premier League"},
+            {"id": "la_liga", "name": "La Liga"},
+            {"id": "bundesliga", "name": "Bundesliga"},
+            {"id": "serie_a", "name": "Serie A"},
+            {"id": "ligue_1", "name": "Ligue 1"},
+            {"id": "champions_league", "name": "Champions League"}
+          ]
+        },
+        {
+          "id": "tactics",
+          "name": "Tactics",
+          "subtopics": [
+            {"id": "formations", "name": "Formations"},
+            {"id": "playing_style", "name": "Playing Style"},
+            {"id": "tactical_analysis", "name": "Tactical Analysis"}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -10,3 +10,10 @@ psycopg2-binary>=2.9.0
 numpy>=1.20.0
 scikit-learn>=1.0.0
 joblib>=1.1.0
+
+# Intelligence module dependencies
+torch>=2.0.1
+transformers>=4.30.2
+sentence-transformers>=2.2.2
+spacy>=3.6.0
+nltk>=3.8.1

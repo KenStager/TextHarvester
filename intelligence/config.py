@@ -18,9 +18,19 @@ DATA_DIR = ROOT_DIR / "data"
 LOGS_DIR = ROOT_DIR / "logs"
 EXPORTS_DIR = ROOT_DIR / "exports"
 
+# Intelligence-specific directories
+INTELLIGENCE_DIR = ROOT_DIR / "intelligence"
+INTELLIGENCE_DATA_DIR = INTELLIGENCE_DIR / "data"
+TAXONOMY_EXPORT_PATH = INTELLIGENCE_DATA_DIR
+CACHE_DIR = INTELLIGENCE_DIR / "cache"
+
 # Ensure directories exist
 for directory in [MODELS_DIR, DATA_DIR, LOGS_DIR, EXPORTS_DIR]:
     directory.mkdir(exist_ok=True, parents=True)
+
+# Model caching settings
+MODEL_CACHE_SIZE = 10  # Maximum number of models to keep in memory
+MODEL_CACHE_TTL = 3600  # Time-to-live for cached models in seconds (1 hour)
 
 # Environment settings
 ENV = os.getenv("TEXTHARVESTER_ENV", "development")  # development, test, production

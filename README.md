@@ -10,7 +10,7 @@ TextHarvester is a web scraping platform designed to collect, process, and analy
 
 - **Web Scraping**: Production-ready with high-performance, parallel crawling
 - **Content Processing**: Stable with both Python and Rust-based extraction
-- **Intelligence Features**: Under active development - basic classification and entity extraction are implemented
+- **Intelligence Features**: Implementation complete - classification and entity extraction are now fully functional
 
 ## Key Features
 

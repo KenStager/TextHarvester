@@ -1,0 +1,13 @@
+# Intelligence module dependencies
+torch>=2.0.1                      # PyTorch for deep learning
+transformers>=4.30.2              # Hugging Face Transformers for NLP models
+sentence-transformers>=2.2.2      # Sentence embeddings
+spacy>=3.6.0                      # NLP framework for various tasks
+nltk>=3.8.1                       # Natural Language Toolkit
+
+# For spaCy models
+# Run after installing: python -m spacy download en_core_web_sm
+# Run after installing: python -m spacy download en_core_web_md
+
+# For NLTK data
+# Run after installing: python -m nltk.downloader punkt stopwords wordnet
