@@ -46,7 +46,7 @@ class ContentEntity(db.Model):
     end_char = Column(Integer, nullable=False)
     confidence = Column(Float, nullable=False)
     entity_id = Column(String(255), nullable=True, index=True)  # For linked entities
-    metadata = Column(JSON, nullable=True)
+    entity_metadata = Column(JSON, nullable=True)  # Renamed from 'metadata' to avoid SQLAlchemy name conflict
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationship to content

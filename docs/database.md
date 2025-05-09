@@ -54,8 +54,13 @@ Stores configuration parameters for scraping jobs.
 | user_agent | String | User agent to use |
 | max_content_length | Integer | Max content size to store |
 | created_at | DateTime | Creation timestamp |
-| enable_intelligence | Boolean | Enable intelligence processing |
-| intelligence_domain | String | Domain for intelligence |
+| enable_intelligent_navigation | Boolean | Enable intelligent navigation |
+| quality_threshold | Float | Quality score threshold for extending depth |
+| max_extended_depth | Integer | Max levels beyond standard depth |
+| enable_classification | Boolean | Enable content classification |
+| enable_entity_extraction | Boolean | Enable entity extraction |
+| intelligence_domain | String | Domain for intelligence processing |
+| intelligence_config | JSON | Additional intelligence configuration |
 
 ### ScrapingJob
 
@@ -126,7 +131,7 @@ Stores extracted entities.
 | end_char | Integer | End position |
 | confidence | Float | Confidence score |
 | entity_id | String | Optional entity ID for linking |
-| metadata | JSON | Additional entity data |
+| entity_metadata | JSON | Additional entity data |
 | created_at | DateTime | Creation timestamp |
 
 ### SourceCredibility

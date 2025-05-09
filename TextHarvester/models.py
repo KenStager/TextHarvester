@@ -30,6 +30,11 @@ class ScrapingConfiguration(db.Model):
     enable_intelligent_navigation = Column(Boolean, default=True)
     quality_threshold = Column(Float, default=0.7)  # Quality score threshold for extending depth
     max_extended_depth = Column(Integer, default=2)  # Max levels beyond standard depth to allow
+    # Intelligence features
+    enable_classification = Column(Boolean, default=False)
+    enable_entity_extraction = Column(Boolean, default=False)
+    intelligence_domain = Column(String(50), default="football")
+    intelligence_config = Column(JSON, nullable=True)  # Additional configuration options
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

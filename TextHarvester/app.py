@@ -75,5 +75,13 @@ with app.app_context():
     # Register sources routes
     from api.sources import sources_bp
     app.register_blueprint(sources_bp)
+    
+    # Register intelligence routes
+    try:
+        from api.intelligence import register_blueprint as register_intelligence_blueprint
+        register_intelligence_blueprint(app)
+        logger.info("Registered intelligence blueprint")
+    except ImportError as e:
+        logger.warning(f"Could not register intelligence blueprint: {e}")
 
     logger.info("Application initialized")

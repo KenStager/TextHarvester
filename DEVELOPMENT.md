@@ -429,6 +429,35 @@ If you have trouble connecting to the database:
 3. Check permissions for the database user
 4. Try connecting with `psql` to isolate the issue
 
+### SQLAlchemy Reserved Names
+
+When defining SQLAlchemy models, avoid using reserved attribute names such as:
+
+1. `metadata` - Used by SQLAlchemy's Declarative API for class information
+2. `query` - Reserved for query functionality
+3. `session` - Reserved for session management
+
+Use descriptive alternatives like `entity_metadata` instead of `metadata`. If you encounter errors like `AttributeError: type object has no attribute 'X'`, check if you've used a reserved name.
+
+### Blueprint Registration
+
+When adding new Flask blueprints:
+
+1. Always register blueprints in `app.py` using a try-except block for graceful failure
+2. Follow the existing pattern for registering blueprints
+3. Use a consistent naming pattern for blueprint objects and variable names
+4. After registration, verify both route conflicts and template references
+
+```python
+# Example blueprint registration
+try:
+    from api.custom import register_blueprint as register_custom_blueprint
+    register_custom_blueprint(app)
+    logger.info("Registered custom blueprint")
+except ImportError as e:
+    logger.warning(f"Could not register custom blueprint: {e}")
+```
+
 ### Performance Problems
 
 If you encounter performance issues:

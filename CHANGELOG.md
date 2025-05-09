@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced job statistics with intelligence metrics
 - Documentation for intelligence visualization
 
+### Fixed
+- Resolved endpoint conflict in routes.py with duplicate view_job_content declarations
+- Fixed ContentEntity model to use entity_metadata instead of metadata (SQLAlchemy reserved name)
+- Added intelligence blueprint registration in app.py
+- Updated database schema to include required intelligence columns
+
 ## [1.0.0] - 2024-05-08
 
 ### Added

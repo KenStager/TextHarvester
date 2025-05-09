@@ -313,10 +313,6 @@ def job_status(job_id):
     
     return render_template('status.html', job=job, content_count=content_count, analytics=analytics)
 
-@api_bp.route('/content/<int:job_id>', methods=['GET'])
-def view_job_content(job_id):
-    """View content scraped by a specific job with pagination"""
-
 @api_bp.route('/content/view/<int:content_id>', methods=['GET'])
 def view_content(content_id):
     """View a specific content item with intelligence data"""
